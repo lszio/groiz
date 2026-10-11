@@ -1,0 +1,16 @@
+[workspace]
+resolver = "2"
+members = ["native/learning", "native/app"]
+
+# Grove is developed and consumed as a submodule of lszio/zio at
+# `apps/grove`; the sibling checkout there satisfies the path
+# dependencies on zio-core and loom. A standalone clone of this
+# repository needs lszio/zio beside it at the paths those
+# dependencies name (see native/*/Cargo.toml).
+[workspace.package]
+version = "0.2.0"
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/lszio/grove"
+homepage = "https://github.com/lszio/zio"
+authors = ["lszio"]
