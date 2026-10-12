@@ -1,7 +1,7 @@
 ;; Grove HTTP product surface. Implements exactly the route set listed in
 ;; docs/grove-http-routes.md (and the local://grove-http-routes.md snapshot).
 ;; Dispatcher over runner/coordinator/checkpoint/store/feedback/selection/codec/contracts.
-;; Auth: Authorization: Bearer <token>, mapped via GROVE_TOKEN_* env vars to a role.
+;; Auth: Authorization: Bearer <token>, mapped via GROIZ_TOKEN_* env vars to a role.
 ;; Errors: {"class","detail","conflict_version"} envelope, classes from grove--errors.
 ;; Idempotency: every mutating POST honors body.operation_id (see store--receipt / store--receipt-put).
 ;; Events: GET /api/events with after_sequence, run_id, kind, limit; cursor paging.
@@ -17,10 +17,10 @@
 
 ;; ---------- Token -> role table (env-driven, never from argv) ----------
 (def api--env-role {
-  "GROVE_TOKEN_READER" "reader"
-  "GROVE_TOKEN_ANNOTATOR" "annotator"
-  "GROVE_TOKEN_OPERATOR" "operator"
-  "GROVE_TOKEN_PUBLISHER" "publisher"})
+  "GROIZ_TOKEN_READER" "reader"
+  "GROIZ_TOKEN_ANNOTATOR" "annotator"
+  "GROIZ_TOKEN_OPERATOR" "operator"
+  "GROIZ_TOKEN_PUBLISHER" "publisher"})
 (defn api--load-tokens []
   (reduce (fn [out var]
             (let [role (get api--env-role var nil)
@@ -800,5 +800,5 @@
   (if (and (= token-count 0)
            (not (or (= bind "127.0.0.1:0") (str-ends-with? bind ":0"))))
       (grove--raise "invalid-input"
-        "no GROVE_TOKEN_* configured; refusing to bind a non-loopback address")
+        "no GROIZ_TOKEN_* configured; refusing to bind a non-loopback address")
       true))

@@ -364,17 +364,17 @@ fn run_serve(args: &[String]) -> Result<(), grove::contracts::Error> {
     let mut tokens: std::collections::HashMap<String, grove::contracts::ActorRole> =
         std::collections::HashMap::new();
     for (var, role) in [
-        ("GROVE_TOKEN_READER", grove::contracts::ActorRole::Reader),
+        ("GROIZ_TOKEN_READER", grove::contracts::ActorRole::Reader),
         (
-            "GROVE_TOKEN_ANNOTATOR",
+            "GROIZ_TOKEN_ANNOTATOR",
             grove::contracts::ActorRole::Annotator,
         ),
         (
-            "GROVE_TOKEN_OPERATOR",
+            "GROIZ_TOKEN_OPERATOR",
             grove::contracts::ActorRole::Operator,
         ),
         (
-            "GROVE_TOKEN_PUBLISHER",
+            "GROIZ_TOKEN_PUBLISHER",
             grove::contracts::ActorRole::Publisher,
         ),
     ] {
