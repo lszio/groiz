@@ -102,7 +102,20 @@
   ;; than reporting the class as `"budget-exhausted`. `str-split ""`
   ;; yields empty leading and trailing elements, so the opening quote is
   ;; at index 1 and the closing one second-to-last.
-  (let* [parts (str-split "" message)
+  ;;
+  ;; An error raised inside the bytecode VM also carries the span it was
+  ;; raised at, appended after the quoted message as ` at line N, col M`.
+  ;; That suffix is not part of the class or the detail, and leaving it
+  ;; on stops the message from looking like a quoted string at all —
+  ;; which is how a reader's forbidden queue POST was answered as a
+  ;; backend failure with the class `"capability-denied. Only a tail that
+  ;; really is a location is dropped, so a detail that says " at line "
+  ;; about something else keeps its words.
+  (let* [located (str-split " at line " message)
+         tail (if (= (count located) 2) (get located 1 "") "")
+         location (and (= (count located) 2) (= (count (str-split ", col " tail)) 2))
+         message (if location (get located 0 "") message)
+         parts (str-split "" message)
          n (count parts)
          quote (get (str-split "" "\"") 1 "")
          wrapped (and (> n 3)
