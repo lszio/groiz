@@ -32,8 +32,11 @@ fn isolation_available() -> bool {
 }
 
 fn bin_path() -> PathBuf {
-    // the integration test target sits next to the binary in target/
-    repo_root().join("target/debug/grove")
+    // Groiz is its own workspace, so its target directory is NOT the
+    // checkout's: guessing `<repo_root>/target/debug/grove` found nothing
+    // once the split landed. Cargo tells the test where it put the
+    // binary of this package instead of the test re-deriving it.
+    PathBuf::from(env!("CARGO_BIN_EXE_grove"))
 }
 
 fn grove(args: &[&str]) -> (String, String, bool) {
