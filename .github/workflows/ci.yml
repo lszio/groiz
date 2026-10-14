@@ -1,0 +1,135 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+  workflow_dispatch:
+
+env:
+  CARGO_TERM_COLOR: always
+  # The compiler walks form trees recursively and a test thread's 2 MiB
+  # is not enough for a whole program. Rust test threads are spawned
+  # with this size, so it is a real requirement, not a preference.
+  RUST_MIN_STACK: 134217728
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# Groiz is standalone: the workspace resolves `zio-core` and `loom` through
+# the sibling directory `../zio`, so both repositories are checked out side
+# by side and every command runs from this one.
+defaults:
+  run:
+    working-directory: groiz
+
+jobs:
+  build:
+    name: build and test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: groiz
+      - uses: actions/checkout@v4
+        with:
+          repository: lszio/zio
+          path: zio
+
+      - name: Install toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      # Both workspaces build here: the worker tests drive the Zio CLI, and
+      # the Zio CLI builds in the sibling checkout.
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            groiz
+            zio
+
+      - name: Build
+        run: cargo build --workspace --all-targets
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # Workspace isolation contracts exercise the real CPU worker and require
+      # its gitignored virtual environment in a clean checkout.
+      - name: Set up CPU worker runtime
+        run: |
+          python -m venv .venv
+          .venv/bin/python -m pip install \
+            --index-url https://download.pytorch.org/whl/cpu \
+            -r workers/torch/requirements.txt
+
+      - name: Test
+        run: cargo test --workspace
+
+      # The worker's own suite: real gradient descent on the frozen task,
+      # recipe declarations read out of the Zio source, and the teacher
+      # protocol. It drives the Zio CLI, so it needs the sibling checkout
+      # as well as the venv above.
+      - name: Worker tests
+        run: .venv/bin/python -m unittest discover -s workers/torch/tests
+
+      - name: Formatting
+        run: cargo fmt --all -- --check
+
+      # Advice, not a gate — yet. This workspace was never linted (the Zio
+      # CI deliberately excluded these crates while the business migrated),
+      # so a first `-D warnings` run reports ~100 pre-existing style items:
+      # collapsible_if (26), arc_with_non_send_sync (18), unused_variables
+      # (12), too_many_arguments (7) and smaller classes. Failing every push
+      # on them would make the gate the problem; the findings are printed
+      # here instead, and the step becomes `-D warnings` once the count is
+      # zero.
+      - name: Clippy (advisory)
+        run: cargo clippy --workspace --all-targets
+
+  service:
+    name: service contracts
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: groiz
+      - uses: actions/checkout@v4
+        with:
+          repository: lszio/zio
+          path: zio
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            groiz
+            zio
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: CPU worker runtime
+        run: |
+          python -m venv .venv
+          .venv/bin/python -m pip install \
+            --index-url https://download.pytorch.org/whl/cpu \
+            -r workers/torch/requirements.txt
+
+      # The launcher runs the Zio CLI from the sibling checkout, so it has
+      # to be built there — debug, which is what tools/groiz looks for
+      # first in a checkout.
+      - name: Build the Zio CLI
+        working-directory: zio
+        run: cargo build -p zio-cli
+
+      - name: HTTP contract (launcher, routing, auth, request lifecycle)
+        run: bash tools/test-zio-http.sh
+
+      - name: Deployment (image build, owner execution, restart persistence)
+        run: |
+          # Build the image against the exact Zio revision this run tested
+          # rather than whatever the default branch says later.
+          ZIO_REF="$(git -C ../zio rev-parse HEAD)" bash tools/test-deployment.sh

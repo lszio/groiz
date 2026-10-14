@@ -1,0 +1,38 @@
+# The Groiz stack. It serves one service, grove, which owns its own data
+# root; the language site is deployed from the Zio repository and no longer
+# proxies anything here.
+services:
+  grove:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        # The Zio revision the image builds against. Defaults to the Zio
+        # default branch; CI and tools/test-deployment.sh pass a concrete
+        # revision so the image matches what the contracts ran against.
+        ZIO_REF: "${ZIO_REF:-main}"
+    restart: unless-stopped
+    environment:
+      GROIZ_ROOT: /srv/grove/data
+      GROIZ_BIND: 0.0.0.0:8787
+      GROIZ_WORKERS: "2"
+      GROIZ_TENSOR_PYTHON: /opt/grove-venv/bin/python
+      GROIZ_TOKEN_READER: ${GROIZ_TOKEN_READER}
+      GROIZ_TOKEN_OPERATOR: ${GROIZ_TOKEN_OPERATOR}
+      GROIZ_TOKEN_PUBLISHER: ${GROIZ_TOKEN_PUBLISHER}
+      GROIZ_TOKEN_ANNOTATOR: ${GROIZ_TOKEN_ANNOTATOR}
+    expose:
+      - "8787"
+    volumes:
+      - grove-data:/srv/grove/data
+    # Health lives in the image's HEALTHCHECK; a second definition here
+    # would drift from it.
+    # Training needs user namespaces; Docker's default seccomp makes
+    # unshare(CLONE_NEWUSER) fail with EPERM. Lifting only the seccomp
+    # filter (verified: probe passes, no extra capabilities granted) is
+    # narrower than privileged or cap-add SYS_ADMIN.
+    security_opt:
+      - seccomp:unconfined
+
+volumes:
+  grove-data:

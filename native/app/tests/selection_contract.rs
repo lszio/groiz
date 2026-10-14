@@ -10,7 +10,7 @@ fn selection_keeps_quality_cost_alternatives_without_gate_failed_dominators() {
         std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../../selection.zio"),
     )
     .expect("Grove owns its selection strategy in Zio");
-    eval_source(&ctx, "apps/grove/selection.zio", &source).unwrap();
+    eval_source(&ctx, "selection.zio", &source).unwrap();
     let result = eval_source(
         &ctx,
         "selection-contract",

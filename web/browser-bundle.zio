@@ -11,10 +11,10 @@
 ;; initialState as the seed for every subsequent event.
 
 ;; Load the controller via load; the Foundation build embedded
-;; /zio/apps/grove/browser-controller.zio via add_source, so this
+;; /groiz/browser-controller.zio via add_source, so this
 ;; resolves. The browser IoHost's "no cwd" capability short-circuits
 ;; relative load resolution, so the path is absolute.
-(load "/zio/apps/grove/browser-controller.zio")
+(load "/groiz/browser-controller.zio")
 
 (defn grove--browser-boot []
   ;; Dispatch the synthetic boot event through the public step entry so

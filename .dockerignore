@@ -1,0 +1,10 @@
+# Only what the image needs. This is not a per-image filter with several
+# consumers: one Dockerfile builds this repository, and every pattern here
+# exists to keep ballast — build output, VCS metadata, the interpreter the
+# worker's venv replaces — out of it.
+.git
+target
+.venv
+**/__pycache__
+*.pyc
+artifacts/

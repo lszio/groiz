@@ -523,7 +523,7 @@ fn train_leg(
 }
 
 /// Training data lives relative to the task dir recorded in Paths; the
-/// worker runs from the workspace root, so relative paths resolve.
+/// worker runs from the repository root, so relative paths resolve.
 fn task_data(name: &str) -> PathBuf {
     PathBuf::from("examples/self-learning/data").join(name)
 }

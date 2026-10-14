@@ -4,7 +4,7 @@ The GroveOrchestration agent is archived. This message is left on disk
 for the parent to pass forward when a new dispatcher agent starts.
 
 From GrovePersistence: stable store.zio surface in
-`/home/lszio/Projects/zio/apps/grove/store.zio`. `feedback.zio` rewritten
+`/home/lszio/Projects/groiz/store.zio`. `feedback.zio` rewritten
 as a thin pass-through over the new store API.
 
 ## Open / close

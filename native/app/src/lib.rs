@@ -1,7 +1,7 @@
 //! Existing native Grove CLI/HTTP application.
 //!
 //! Business orchestration is still implemented here and in the native
-//! `grove` crate. It remains under `apps/grove/native/` until migrated to
+//! `grove` crate. It remains under `native/` until migrated to
 //! Zio; it is neither language infrastructure nor the language playground.
 
 pub mod agent;
@@ -140,7 +140,7 @@ pub fn select_candidates(
     let ctx = language_context(ModuleRoots::empty()).map_err(strategy_error)?;
     eval_source(
         &ctx,
-        "apps/grove/selection.zio",
+        "selection.zio",
         include_str!("../../../selection.zio"),
     )
     .map_err(strategy_error)?;
@@ -274,25 +274,36 @@ pub struct Paths {
     pub generate: PathBuf,
     pub worker: PathBuf,
     pub task: PathBuf,
-    /// The workspace root: the worker's cwd, so the frozen data paths in
+    /// The repository root: the worker's cwd, so the frozen data paths in
     /// requests resolve the same way from any harness.
     pub root: PathBuf,
+    /// The Zio checkout this application loads its `libs/**` modules from:
+    /// the sibling directory the workspace path dependencies already name,
+    /// and the same root the launcher grants as `--app-share`. A tree that
+    /// carries its own `libs/` is its own share.
+    pub share: PathBuf,
 }
 
 impl Paths {
     pub fn from_repo_root() -> Self {
-        // CARGO_MANIFEST_DIR of the app crate → workspace root
+        // CARGO_MANIFEST_DIR of the app crate → repository root
         let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .ancestors()
-            .nth(4)
+            .nth(2)
             .unwrap()
             .to_path_buf();
+        let share = root
+            .parent()
+            .map(|siblings| siblings.join("zio"))
+            .filter(|sibling| sibling.is_dir())
+            .unwrap_or_else(|| root.clone());
         Self {
             python: root.join(".venv/bin/python"),
             generate: root.join("examples/self-learning/generate.py"),
-            worker: root.join("apps/grove/workers/torch/worker.py"),
+            worker: root.join("workers/torch/worker.py"),
             task: root.join("examples/self-learning"),
             root,
+            share,
         }
     }
 }

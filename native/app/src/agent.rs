@@ -1,6 +1,6 @@
 //! G02: the trusted half of the agent loop.
 //!
-//! Grove's entry lives in `apps/grove/main.zio`, which composes the reusable
+//! Grove's entry lives in `main.zio`, which composes the reusable
 //! `libs/loom/agent.zio` loop: when to stop and how to handle execution outcomes.
 //! What lives here is what the agent may not decide: what a model call
 //! costs, what a generated program is allowed to reach, and how long it
@@ -44,7 +44,7 @@ use zio_core::value::{NativeFn, Value};
 /// a caller's argument: which logic runs is a host decision, and a
 /// caller-supplied path would let the caller run logic it wrote under
 /// the host's authority.
-pub const DEFAULT_AGENT_LOGIC: &str = "apps/grove/main.zio";
+pub const DEFAULT_AGENT_LOGIC: &str = "main.zio";
 
 /// The task the agent is given, as the host read it from disk.
 #[derive(Debug, Clone)]
@@ -216,9 +216,14 @@ impl AgentHost {
         run_budget: RunBudget,
         grant: GrantProfile,
         root: PathBuf,
+        share: PathBuf,
         model_host: Arc<dyn harness::ModelHost>,
     ) -> Result<(Arc<Self>, EvalContext)> {
-        let mut roots = vec![root.clone()];
+        // The application's own directory resolves its sibling sources; the
+        // Zio checkout supplies the `libs/...` modules it requires. Both are
+        // module roots, which is a search path, not an authority: the logic
+        // file itself still has to live inside `root`.
+        let mut roots = vec![root.clone(), share];
         for input in &task.inputs {
             roots.push(input.clone());
         }

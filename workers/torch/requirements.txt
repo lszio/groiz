@@ -4,7 +4,7 @@
 # rather than degraded into a simulation.
 #
 #   python -m venv .venv
-#   .venv/bin/pip install -r apps/grove/workers/torch/requirements.txt
+#   .venv/bin/pip install -r workers/torch/requirements.txt
 #
 # GPU is an accelerator, not a requirement: install the matching CUDA
 # build from https://download.pytorch.org/whl/cu124 in place of torch.

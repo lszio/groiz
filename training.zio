@@ -1,6 +1,6 @@
 ;; Committing a trained run means storing the bytes the worker actually
 ;; produced and refusing anything that is not a model. The Rust oracle is
-;; `commit_trained_snapshot` (apps/grove/native/app/src/demo.rs:234).
+;; `commit_trained_snapshot` (native/app/src/demo.rs:234).
 (load "artifacts.zio")
 (load "store.zio")
 
@@ -25,7 +25,7 @@
 (defn training--modules [graph params]
   ;; One module per TRAINED linear layer: the fusion layer first, the
   ;; classification head last. A layer the worker did not train is not a
-  ;; module. Keys match the ModuleSpec field list in apps/grove/codec.zio,
+  ;; module. Keys match the ModuleSpec field list in codec.zio,
   ;; because `codec--text` writes only the fields it knows and silently
   ;; drops the rest.
   ;; `params` comes from `codec--normalize`, so its layer keys are

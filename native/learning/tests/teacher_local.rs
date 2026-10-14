@@ -29,7 +29,7 @@ impl Drop for Service {
 /// Start the local teacher and wait for its readiness line.
 fn start(weights: &Path, python: &Path) -> Option<Service> {
     let mut child = Command::new(python)
-        .arg("apps/grove/workers/torch/teacher.py")
+        .arg("workers/torch/teacher.py")
         .arg("--weights")
         .arg(weights)
         .arg("--port")
@@ -67,7 +67,7 @@ fn start(weights: &Path, python: &Path) -> Option<Service> {
 fn repo_root() -> std::path::PathBuf {
     std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .ancestors()
-        .nth(4)
+        .nth(2)
         .unwrap()
         .to_path_buf()
 }

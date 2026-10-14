@@ -83,7 +83,7 @@ impl TrainingEnvironment {
     /// missing, which the caller reports rather than degrades.
     pub fn probe(root: &std::path::Path) -> Option<Self> {
         let python = root.join(".venv/bin/python");
-        let worker_script = root.join("apps/grove/workers/torch/worker.py");
+        let worker_script = root.join("workers/torch/worker.py");
         if !python.is_file() || !worker_script.is_file() {
             return None;
         }
@@ -480,7 +480,7 @@ impl Runner {
                 ErrorKind::CapabilityDenied,
                 format!(
                     "run {} is a training run, which needs a provisioned torch worker \
-                     (.venv/bin/python + apps/grove/workers/torch/worker.py + a G00 isolation profile); \
+                     (.venv/bin/python + workers/torch/worker.py + a G00 isolation profile); \
                      this owner was assembled without one, so the work is refused rather \
                      than reported done",
                     claim.run_id

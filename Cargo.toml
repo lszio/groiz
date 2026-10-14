@@ -2,11 +2,11 @@
 resolver = "2"
 members = ["native/learning", "native/app"]
 
-# Groiz is developed and consumed as a submodule of lszio/zio at
-# `apps/grove`; the sibling checkout there satisfies the path
-# dependencies on zio-core and loom. A standalone clone of this
-# repository needs lszio/zio beside it at the paths those
-# dependencies name (see native/*/Cargo.toml).
+# Groiz is a standalone repository: the Zio checkout it builds against sits
+# in the sibling directory `../zio` (the path dependencies in
+# `native/*/Cargo.toml` name it explicitly), and its Zio sources, libraries
+# and toolchain come from there. Clone both side by side or the workspace
+# will not resolve.
 [workspace.package]
 version = "0.2.0"
 edition = "2024"

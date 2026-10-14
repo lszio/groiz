@@ -722,12 +722,27 @@ def bind_delayed(trajectories: list) -> list:
     return by_id
 
 
+def keyword_name(value):
+    """The name behind a keyword-valued frame field.
+
+    A keyword in value position arrives JSON-tagged as `{"$keyword": name}`:
+    the language tags it because a bare string there would be
+    indistinguishable from a string literal. The frame is written by that
+    language, so this is its encoding rather than a caller's quirk — and a
+    plain string is still accepted, because older frames carry one.
+    """
+    if isinstance(value, dict) and set(value) == {"$keyword"}:
+        return value["$keyword"]
+    return value
+
+
 def run_environment_feedback(frame: dict, student: Student, contract: dict, opt) -> dict:
     """Delayed outcomes supervised as a later signal on the original
     trajectory: the return of a whole trajectory is added to the log-prob
     of the actions that produced it, after the outcome has settled."""
     guard_consumes(contract, "environment-result")
-    if contract.get("binds") != "trajectory" and contract.get("bind") != "trajectory":
+    binds = keyword_name(contract.get("binds", contract.get("bind")))
+    if binds != "trajectory":
         raise RecipeError(
             f"recipe {contract.get('id')!r} accepts delayed results but does "
             "not bind them to a trajectory; unattributable reward is refused")

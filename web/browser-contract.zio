@@ -1,4 +1,4 @@
-;; Run from the apps/grove/ working tree:
+;; Run from the repository root:
 ;;   zio web/browser-contract.zio
 ;; The contract pins every authority-sensitive behavior of the browser controller:
 ;; approval is gated on an explicit human confirm, tokens never enter controller

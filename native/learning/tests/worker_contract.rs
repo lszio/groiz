@@ -19,7 +19,7 @@ use grove::worker::{
 fn repo_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .ancestors()
-        .nth(4)
+        .nth(2)
         .unwrap()
         .to_path_buf()
 }
@@ -36,7 +36,7 @@ fn worker_config() -> WorkerConfig {
     let root = repo_root();
     WorkerConfig {
         python: venv_python(),
-        worker_script: root.join("apps/grove/workers/torch/worker.py"),
+        worker_script: root.join("workers/torch/worker.py"),
         unshare: PathBuf::from("unshare"),
         scratch: std::env::temp_dir(),
         working_dir: repo_root(),
@@ -325,7 +325,7 @@ fn an_unknown_frame_type_is_not_decoded_as_a_known_one() {
 #[test]
 fn training_through_the_host_produces_loadable_weights() {
     if !venv_python().exists() {
-        eprintln!("skipping: no torch venv; install apps/grove/workers/torch/requirements.txt");
+        eprintln!("skipping: no torch venv; install workers/torch/requirements.txt");
         return;
     }
     let Some(iso) = isolation() else {

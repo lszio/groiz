@@ -330,7 +330,7 @@ fn chain(target: &Path, source: &Path, ordered: &mut BTreeMap<PathBuf, PathBuf>)
     // `/` is already the new root; binding it would fail and gain nothing.
     //
     // Ancestors are carried as **empty directories**, not as binds of
-    // themselves. Binding `/home/lszio/Projects/zio` because the venv
+    // themselves. Binding `/home/lszio/Projects/groiz` because the venv
     // lives under it would hand the worker the entire checkout — the
     // store, the evaluator, the credentials — which is exactly what the
     // profile exists to prevent. An empty directory is enough for a
@@ -386,7 +386,7 @@ where
     let mut setup = reset.clone();
 
     // Ancestors first. Binding `/home/lszio` *replaces* the directory it
-    // lands on, so a later bind onto `/home/lszio/Projects/zio/.venv` would
+    // lands on, so a later bind onto `/home/lszio/Projects/groiz/.venv` would
     // find no mount point there. Every entry therefore contributes its
     // whole ancestor chain, mounted shallowest first.
     //

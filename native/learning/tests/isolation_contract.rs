@@ -14,9 +14,19 @@ use grove::worker::{Frame, PROTOCOL_VERSION, Worker, WorkerConfig};
 fn repo_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .ancestors()
-        .nth(4)
+        .nth(2)
         .unwrap()
         .to_path_buf()
+}
+
+/// `libs/**` ships with the sibling Zio checkout, not with Groiz.
+fn zio_root() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .ancestors()
+        .nth(3)
+        .unwrap()
+        .to_path_buf()
+        .join("zio")
 }
 
 fn venv_python() -> PathBuf {
@@ -48,7 +58,7 @@ impl Fixture {
         let root = repo_root();
         WorkerConfig {
             python: venv_python(),
-            worker_script: root.join("apps/grove/workers/torch/worker.py"),
+            worker_script: root.join("workers/torch/worker.py"),
             unshare: PathBuf::from("unshare"),
             scratch: self.scratch(),
             working_dir: root.clone(),
@@ -76,9 +86,9 @@ impl Fixture {
                     .unwrap()
                     .to_path_buf(),
                 // The worker script and the frozen Zio stdlib it imports.
-                worker_script: repo_root().join("apps/grove/workers/torch/worker.py"),
-                lib: repo_root().join("libs"),
-                stdlib: repo_root().join("libs/std"),
+                worker_script: repo_root().join("workers/torch/worker.py"),
+                lib: zio_root().join("libs"),
+                stdlib: zio_root().join("libs/std"),
                 // Declared task inputs, mounted read-only per attempt.
                 inputs: vec![self.dir.join("input")],
             },
@@ -123,8 +133,8 @@ fn a_profile_with_a_readonly_root_outside_it_is_refused() {
     // Point the declared input at the host's own store instead of the
     // attempt's input directory: the profile must not silently accept a
     // read-only mount that grants the database.
-    profile.read_only.inputs = vec![repo_root().join("apps/grove/native/learning")];
-    profile.read_only.inputs[0] = repo_root().join("apps/grove/native/learning/src/store.rs");
+    profile.read_only.inputs = vec![repo_root().join("native/learning")];
+    profile.read_only.inputs[0] = repo_root().join("native/learning/src/store.rs");
     let err = profile
         .validate()
         .expect_err("a file that is not a directory cannot be mounted");
@@ -236,7 +246,7 @@ print(json.dumps(result))
                 canary.display().to_string(),
                 secret.display().to_string(),
                 repo_root()
-                    .join("apps/grove/native/learning/src/store.rs")
+                    .join("native/learning/src/store.rs")
                     .display()
                     .to_string(),
             ],
@@ -486,7 +496,7 @@ fn a_mount_spec_binds_everything_read_only_except_the_scratch() {
 
     // The trust store, the credentials, and the user's home are not in it.
     let forbidden_paths: Vec<PathBuf> = vec![
-        repo_root().join("apps/grove/native/learning"),
+        repo_root().join("native/learning"),
         repo_root().join(".git"),
         PathBuf::from("/home/lszio/.ssh"),
         PathBuf::from("/home/lszio/.config"),

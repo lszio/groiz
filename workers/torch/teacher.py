@@ -10,9 +10,9 @@ The point is provenance, not accuracy: a teacher's answers carry
 `model_version` and a real prediction, and a broken weights file is a
 visible error rather than a confident wrong answer.
 
-    python apps/grove/workers/torch/train.py --task examples/self-learning \
+    python workers/torch/train.py --task examples/self-learning \
         --steps 400 --out teacher.pt
-    python apps/grove/workers/torch/teacher.py --weights teacher.pt --port 8088
+    python workers/torch/teacher.py --weights teacher.pt --port 8088
 """
 
 from __future__ import annotations

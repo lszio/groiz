@@ -1150,7 +1150,7 @@
   ;; second writer must be *told* rather than silently believing it won.
   ;; Same answer twice is idempotent; a different answer under the same
   ;; id, or a lost race for it, is a conflict. The Rust oracle is
-  ;; `put_receipt` (apps/grove/native/learning/src/store.rs:1451).
+  ;; `put_receipt` (native/learning/src/store.rs:1451).
   ;; The pre-read is only an optimization: skip the write when the answer
   ;; is already recorded. The stored answer is ALWAYS re-read, never taken
   ;; from `store--receipt-store`, which returns the caller's own map back
@@ -1161,7 +1161,7 @@
   ;; A receipt is the ledger entry for an operation the caller was already
   ;; authorized to perform, not a domain write of its own. The Rust oracle
   ;; records it as `Actor::new("grove-api", Operator)`
-  ;; (apps/grove/native/app/src/api.rs:158) regardless of the caller's role,
+  ;; (native/app/src/api.rs:158) regardless of the caller's role,
   ;; because the authority in question is the ROUTE's, already checked by
   ;; `api--require-role` before the handler ran. Demanding `operator` here
   ;; refused an annotator on its own `POST /api/signals` -- a route that

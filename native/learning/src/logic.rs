@@ -139,24 +139,12 @@ impl Default for GovernanceMap {
 /// undeclared is `Learnable`.
 pub fn default_governance() -> GovernanceMap {
     GovernanceMap::new()
-        .with(
-            "apps/grove/native/learning/src/evaluation.rs",
-            Governance::Protected,
-        )
-        .with(
-            "apps/grove/native/learning/src/contracts.rs",
-            Governance::Protected,
-        )
-        .with(
-            "apps/grove/native/learning/src/store.rs",
-            Governance::Protected,
-        )
-        .with(
-            "apps/grove/native/learning/src/logic.rs",
-            Governance::Protected,
-        )
+        .with("native/learning/src/evaluation.rs", Governance::Protected)
+        .with("native/learning/src/contracts.rs", Governance::Protected)
+        .with("native/learning/src/store.rs", Governance::Protected)
+        .with("native/learning/src/logic.rs", Governance::Protected)
         .with("libs/loom/agent.zio", Governance::Governed)
-        .with("apps/grove/main.zio", Governance::Governed)
+        .with("main.zio", Governance::Governed)
 }
 
 /// Is `path` inside `prefix`, by whole path component? A relative

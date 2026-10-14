@@ -12,7 +12,7 @@ use grove_app::{Paths, demo, inspect, open_store, operator};
 fn repo_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .ancestors()
-        .nth(4)
+        .nth(2)
         .unwrap()
         .to_path_buf()
 }

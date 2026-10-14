@@ -81,7 +81,7 @@ impl ModelHost for ScriptedModel {
 fn repo_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .ancestors()
-        .nth(4)
+        .nth(2)
         .unwrap()
         .to_path_buf()
 }
@@ -131,6 +131,7 @@ fn setup(
         run_budget,
         candidate_grant(&budget(3), Vec::new()),
         repo_root(),
+        grove_app::Paths::from_repo_root().share,
         model,
     )
     .expect("assemble host");

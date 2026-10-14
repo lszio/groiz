@@ -2,3 +2,6 @@
 artifacts/
 __pycache__/
 *.pyc
+# The CPU worker's interpreter. Created per checkout (or linked to the Zio
+# checkout's) — never committed.
+/.venv

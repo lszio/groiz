@@ -12,7 +12,7 @@ acceptance task depends on:
   * training is reproducible under a fixed seed within a declared tolerance;
   * a broken weights file is a visible error, not a confident guess.
 
-    python -m unittest discover -s apps/grove/workers/torch/tests -p test_training.py
+    python -m unittest discover -s workers/torch/tests -p test_training.py
 """
 
 from __future__ import annotations
@@ -25,8 +25,8 @@ from pathlib import Path
 
 import torch
 
-ROOT = Path(__file__).resolve().parents[5]  # repo root
-WORKER = ROOT / "apps" / "grove" / "workers" / "torch"
+ROOT = Path(__file__).resolve().parents[3]  # repo root
+WORKER = ROOT / "workers" / "torch"
 TASK = ROOT / "examples" / "self-learning"
 
 sys.path.insert(0, str(WORKER))

@@ -3,7 +3,7 @@
 //! The host never runs a candidate's Python. It runs *this* worker with
 //! *this* interpreter and passes a validated operator graph; the graph
 //! vocabulary is what bounds what can execute (see
-//! `apps/grove/workers/torch/graph.py`).
+//! `workers/torch/graph.py`).
 //!
 //! Isolation is real or refused. The worker is started inside a user,
 //! network, PID and mount namespace via `unshare`, with a read-only
@@ -308,7 +308,7 @@ impl Default for WorkerConfig {
     fn default() -> Self {
         Self {
             python: PathBuf::from("python3"),
-            worker_script: PathBuf::from("apps/grove/workers/torch/worker.py"),
+            worker_script: PathBuf::from("workers/torch/worker.py"),
             unshare: PathBuf::from("unshare"),
             scratch: std::env::temp_dir(),
             working_dir: std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")),

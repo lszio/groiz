@@ -1,9 +1,9 @@
 // Trusted Zio sources. Embedded as strings so the bridge can register
 // them with the WASM host's in-memory filesystem (add_source). The
-// sources are the exact same files checked into apps/grove/; the
+// sources are the exact same files checked into the repository root; the
 // parent (or a build step) regenerates this file when the sources change.
 /* eslint-disable */
-export const CONTROLLER_PATH = '/zio/apps/grove/browser-controller.zio';
+export const CONTROLLER_PATH = '/groiz/browser-controller.zio';
 export const CONTROLLER_SOURCE = [
   ";; Browser business runs in the persistent, fail-closed WASM Zio session.",
   ";; AST startup is explicit until the installed portable controller is compiled.",
@@ -459,7 +459,7 @@ export const CONTROLLER_SOURCE = [
   "        (grove--browser-result state [(grove--browser-text (get outputs id \"runtime-status\") (str *error*) true)])))))",
   ""
 ].join("\n");
-export const BUNDLE_PATH = '/zio/apps/grove/browser-bundle.zio';
+export const BUNDLE_PATH = '/groiz/browser-bundle.zio';
 export const BUNDLE_SOURCE = [
   ";; Bundle entry the Foundation WASM build evaluates at startup.",
   ";;",
@@ -474,10 +474,10 @@ export const BUNDLE_SOURCE = [
   ";; initialState as the seed for every subsequent event.",
   "",
   ";; Load the controller via load; the Foundation build embedded",
-  ";; /zio/apps/grove/browser-controller.zio via add_source, so this",
+  ";; /groiz/browser-controller.zio via add_source, so this",
   ";; resolves. The browser IoHost's \"no cwd\" capability short-circuits",
   ";; relative load resolution, so the path is absolute.",
-  "(load \"/zio/apps/grove/browser-controller.zio\")",
+  "(load \"/groiz/browser-controller.zio\")",
   "",
   "(defn grove--browser-boot []",
   "  ;; Dispatch the synthetic boot event through the public step entry so",

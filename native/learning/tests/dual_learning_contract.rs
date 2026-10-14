@@ -23,20 +23,30 @@ use zio_core::env::Env;
 use zio_core::error::EvalError;
 use zio_core::value::Value;
 
-fn workspace_root() -> PathBuf {
+fn repo_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .ancestors()
-        .nth(4)
+        .nth(2)
         .unwrap()
         .to_path_buf()
 }
 
+/// `libs/**` ships with the sibling Zio checkout, not with Groiz.
+fn zio_root() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .ancestors()
+        .nth(3)
+        .unwrap()
+        .to_path_buf()
+        .join("zio")
+}
+
 fn task_dir() -> PathBuf {
-    workspace_root().join("examples/self-learning")
+    repo_root().join("examples/self-learning")
 }
 
 fn venv_python() -> PathBuf {
-    workspace_root().join(".venv/bin/python")
+    repo_root().join(".venv/bin/python")
 }
 
 // ── Zio harness ────────────────────────────────────────────────────
@@ -68,7 +78,7 @@ fn model_ctx() -> EvalContext {
         zio_core::eval::eval_in_context(&sexp, &ctx).expect("stdlib loads");
     }
     for lib in ["learn/model.zio", "learn/recipes.zio"] {
-        let path = workspace_root().join("libs/learning").join(lib);
+        let path = zio_root().join("libs/learning").join(lib);
         let source = std::fs::read_to_string(&path).expect("lib exists");
         let sid = ctx.source_map().register(lib.into(), source.clone());
         let forms =
@@ -106,10 +116,10 @@ fn isolation() -> Option<Isolation> {
 }
 
 fn worker_config() -> WorkerConfig {
-    let root = workspace_root();
+    let root = repo_root();
     WorkerConfig {
         python: venv_python(),
-        worker_script: root.join("apps/grove/workers/torch/worker.py"),
+        worker_script: root.join("workers/torch/worker.py"),
         unshare: PathBuf::from("unshare"),
         scratch: std::env::temp_dir(),
         working_dir: root.clone(),

@@ -1,0 +1,10 @@
+# Local-only port override. The deployment file (docker-compose.yml) is
+# expose-only because host ports are global while Dokploy compose projects
+# are not — several stacks share this host. Pair the two files for local
+# end-to-end verification:
+#   docker compose -f docker-compose.yml -f docker-compose.local.yml up
+# An uncommon high port: dev machines commonly hold 8080 and 8787.
+services:
+  grove:
+    ports:
+      - "127.0.0.1:18787:8787"

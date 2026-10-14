@@ -1,0 +1,131 @@
+#!/usr/bin/env bash
+# The Groiz launcher: what the product actually runs.
+#
+# Grants are decided HERE, from explicit environment variables, and handed
+# to the Zio entry as one flag set. Nothing is inferred from the source it
+# is about to run — a candidate that could name its own store root, its own
+# tensor backend or its own read roots would make the isolation profile
+# advisory. The application cannot widen any of it either: `zio --app`
+# installs exactly these roots, and `--app-env` lists the only environment
+# names it may read.
+set -euo pipefail
+
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ROOT="$(cd "$HERE/.." && pwd)"
+
+# The Zio checkout this repository builds against. It is the sibling
+# directory by default; ZIO_ROOT names it explicitly, which is also how an
+# installed tree (share/zio + bin/zio on PATH) is selected.
+ZIO_ROOT="${ZIO_ROOT:-}"
+if [ -z "$ZIO_ROOT" ] && [ -d "$(dirname "$ROOT")/zio" ]; then
+  ZIO_ROOT="$(cd "$(dirname "$ROOT")/zio" && pwd)"
+fi
+if [ -z "$ZIO_ROOT" ] || [ ! -d "$ZIO_ROOT/langs/core" ]; then
+  echo "no Zio checkout: set ZIO_ROOT (looked at $(dirname "$ROOT")/zio)" >&2
+  exit 2
+fi
+
+# A checkout needs its own build; an installed tree puts `zio` on PATH.
+ZIO_BIN="${ZIO_BIN:-}"
+if [ -z "$ZIO_BIN" ]; then
+  for candidate in "$ZIO_ROOT/target/release/zio-cli" "$ZIO_ROOT/target/debug/zio-cli"; do
+    if [ -x "$candidate" ]; then ZIO_BIN="$candidate"; break; fi
+  done
+fi
+if [ -z "$ZIO_BIN" ]; then ZIO_BIN="$(command -v zio || true)"; fi
+if [ -z "$ZIO_BIN" ] || [ ! -x "$ZIO_BIN" ]; then
+  echo "no zio CLI: run 'cargo build --release -p zio-cli' in $ZIO_ROOT, or set ZIO_BIN" >&2
+  exit 2
+fi
+
+APP_ROOT="${GROIZ_APP_ROOT:-$ROOT}"
+ROOT_DIR="${GROIZ_ROOT:-$PWD}"
+BIND="${GROIZ_BIND:-127.0.0.1:8787}"
+# The worker's interpreter: a checkout creates its own `.venv` (see README),
+# an installed tree names one explicitly.
+PYTHON="${GROIZ_TENSOR_PYTHON:-}"
+if [ -z "$PYTHON" ]; then
+  if [ -x "$APP_ROOT/.venv/bin/python" ]; then
+    PYTHON="$APP_ROOT/.venv/bin/python"
+  else
+    PYTHON="python3"
+  fi
+fi
+WORKERS="${GROIZ_WORKERS:-2}"
+BACKEND="${GROIZ_TENSOR_BACKEND:-$ZIO_ROOT/contribs/tensor/backend.py}"
+
+# The jail pivots everything away except what it mounts, so the worker's
+# script directory and the real interpreter's tree must be granted
+# read-only. The venv python is exec'd by its un-resolved path so CPython
+# finds pyvenv.cfg; the mounts cover the real install tree and the alias
+# directory the symlink points through.
+WORKER="${GROIZ_WORKER_SCRIPT:-$APP_ROOT/workers/torch/worker.py}"
+PYTHON_BIN="$(command -v "$PYTHON")"
+PYTHON_REAL="$(readlink -f "$PYTHON_BIN")"
+PYTHON_VENV="$(readlink -f "$(dirname "$PYTHON_BIN")/..")"
+PYTHON_BASE="$(readlink -f "$(dirname "$PYTHON_REAL")/..")"
+PYTHON_ALIAS="$(readlink -f "$(dirname "$PYTHON_REAL")/../..")"
+# A mount target nested inside another is refused by the jail (the host
+# verifies that, it does not assume it), and /usr is granted whole by the
+# service, so overlapping entries are dropped here instead of failing at
+# claim time.
+mount_dirs=()
+add_mount() {
+  case "$1" in ""|/|/usr|/usr/*) return ;; esac
+  for dir in ${mount_dirs[@]+"${mount_dirs[@]}"}; do
+    if [ "$dir" = "$1" ]; then return; fi
+  done
+  mount_dirs+=("$1")
+}
+add_mount "$(cd "$(dirname "$WORKER")" && pwd)"
+add_mount "$PYTHON_VENV"
+# The alias directory contains the real install tree, so granting the alias
+# covers the interpreter itself; when the alias is /usr-side it is already
+# covered by the whole-/usr grant, and the base tree is the one to name.
+case "$PYTHON_ALIAS" in
+  /|/usr|/usr/*) add_mount "$PYTHON_BASE" ;;
+  *) add_mount "$PYTHON_ALIAS" ;;
+esac
+worker_mounts=()
+for dir in ${mount_dirs[@]+"${mount_dirs[@]}"}; do
+  worker_mounts+=(--app-worker-mount "$dir")
+done
+
+# The tensor backend is a granted executable, not a required one: a Zio
+# checkout without it still runs the language-only paths.
+tensor_flags=()
+if [ -f "$BACKEND" ]; then
+  tensor_flags=(--app-tensor-backend "$BACKEND" --app-tensor-python "$PYTHON")
+fi
+
+# Everything the caller passed belongs to the application, not to the
+# launcher: each argument becomes one --args token, so `groiz --help`
+# reaches the Groiz CLI instead of being refused as an unknown launcher
+# option.
+app_args=()
+for arg in "$@"; do
+  app_args+=(--args "$arg")
+done
+
+# The entry name is part of the launcher↔application contract; the CLI
+# refuses an `--app` invocation that does not name one.
+export ZIO_APP_ENTRY="${ZIO_APP_ENTRY:-grove--main}"
+
+exec "$ZIO_BIN" \
+  --app "$APP_ROOT/main.zio" \
+  --app-root "$APP_ROOT" \
+  --app-share "$ZIO_ROOT" \
+  --app-resource-root "$ZIO_ROOT" \
+  --app-web-root "$APP_ROOT/web" \
+  --app-root-dir "$ROOT_DIR" \
+  --app-bind "$BIND" \
+  --app-workers "$WORKERS" \
+  --app-worker-script "$WORKER" \
+  --app-worker-python "$PYTHON_BIN" \
+  ${tensor_flags[@]+"${tensor_flags[@]}"} \
+  --app-env GROIZ_TOKEN_READER \
+  --app-env GROIZ_TOKEN_ANNOTATOR \
+  --app-env GROIZ_TOKEN_OPERATOR \
+  --app-env GROIZ_TOKEN_PUBLISHER \
+  ${worker_mounts[@]+"${worker_mounts[@]}"} \
+  ${app_args[@]+"${app_args[@]}"}

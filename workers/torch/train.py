@@ -10,7 +10,7 @@ Two model shapes, so dual learning has something to compare:
     code-rewriting candidate makes. Weights are trained by real
     backpropagation here in torch, not simulated.
 
-    python apps/grove/workers/torch/train.py --steps 400 --out teacher.pt
+    python workers/torch/train.py --steps 400 --out teacher.pt
 """
 
 from __future__ import annotations
@@ -143,7 +143,7 @@ def accuracy(model, x, y, decidable) -> tuple[float, int]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--task", default=str(Path(__file__).resolve().parents[4] / "examples" / "self-learning"))
+    parser.add_argument("--task", default=str(Path(__file__).resolve().parents[2] / "examples" / "self-learning"))
     parser.add_argument("--steps", type=int, default=400)
     parser.add_argument("--lr", type=float, default=0.02)
     parser.add_argument("--seed", type=int, default=20261003)

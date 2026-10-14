@@ -379,7 +379,7 @@ fn a_resumed_run_is_actually_executed_rather_than_left_queued() {
         .expect("put");
     let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .ancestors()
-        .nth(4)
+        .nth(2)
         .unwrap()
         .to_path_buf();
     let data = root.join("examples/self-learning/data");
@@ -463,7 +463,7 @@ fn a_resumed_run_is_actually_executed_rather_than_left_queued() {
 fn training_env() -> Option<grove_app::runner::TrainingEnvironment> {
     let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .ancestors()
-        .nth(4)
+        .nth(2)
         .unwrap()
         .to_path_buf();
     let environment = grove_app::runner::TrainingEnvironment::probe(&root)?;
@@ -529,7 +529,7 @@ fn a_real_cpu_training_run_actually_trains_and_logs_its_progress() {
     // validator, which would prove nothing about training.
     let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .ancestors()
-        .nth(4)
+        .nth(2)
         .unwrap()
         .to_path_buf();
     let data = root.join("examples/self-learning/data");

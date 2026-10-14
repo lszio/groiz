@@ -21,7 +21,7 @@ around them:
     pass without a declared task gate;
   * a delayed result that cannot name its trajectory is refused.
 
-    .venv/bin/python -m unittest discover -s apps/grove/workers/torch/tests -p test_recipes.py
+    .venv/bin/python -m unittest discover -s workers/torch/tests -p test_recipes.py
 """
 
 from __future__ import annotations
@@ -36,8 +36,14 @@ from pathlib import Path
 
 import torch
 
-ROOT = Path(__file__).resolve().parents[5]
-WORKER = ROOT / "apps" / "grove" / "workers" / "torch"
+ROOT = Path(__file__).resolve().parents[3]
+# The Zio checkout this repository builds against: the sibling directory the
+# workspace path dependencies name. The library declarations and the CLI the
+# tests drive live there, not here.
+ZIO = ROOT.parent / "zio"
+if not ZIO.is_dir():
+    ZIO = ROOT
+WORKER = ROOT / "workers" / "torch"
 TASK = ROOT / "examples" / "self-learning"
 DATA = TASK / "data"
 PYTHON = ROOT / ".venv" / "bin" / "python"
@@ -63,7 +69,8 @@ def declared(family: str) -> dict:
     survive as strings, which is exactly what the recipe frame carries.
     """
     if not _DECLARED:
-        program = f'(load "{ROOT / "libs" / "learning" / "learn" / "recipes.zio"}")\n'
+        declaration = ZIO / "libs" / "learning" / "learn" / "recipes.zio"
+        program = f'(load "{declaration}")\n'
         for name in _RECIPES:
             program += f'(println (json-stringify recipes--{name}))\n'
         with tempfile.NamedTemporaryFile("w", suffix=".zio", delete=False) as handle:
@@ -71,18 +78,21 @@ def declared(family: str) -> dict:
             script = handle.name
         try:
             result = subprocess.run(
-                [CARGO_BIN, "run", "-q", "-p", "zio-cli", "--", script],
+                [CARGO_BIN, "run", "-q", "--manifest-path", str(ZIO / "Cargo.toml"),
+                 "-p", "zio-cli", "--", script],
                 capture_output=True, text=True, timeout=900, cwd=str(ROOT))
         finally:
             Path(script).unlink(missing_ok=True)
         assert result.returncode == 0, f"zio-cli failed: {result.stderr[-2000:]}"
         # The module prints a load banner first, so match on the parsed
-        # record rather than on line position.
+        # record rather than on line position. `println` writes the string
+        # it is given, so the record line is the JSON object itself.
         for line in result.stdout.splitlines():
-            if not line.strip().startswith('"'):
+            line = line.strip()
+            if not line.startswith("{"):
                 continue
             try:
-                value = json.loads(json.loads(line))
+                value = json.loads(line)
             except json.JSONDecodeError:
                 continue
             if isinstance(value, dict) and "id" in value:

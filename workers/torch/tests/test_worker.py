@@ -1,6 +1,6 @@
 """Worker protocol contract: frames, structural rejection, real training.
 
-    python -m unittest discover -s apps/grove/workers/torch/tests -p test_worker.py
+    python -m unittest discover -s workers/torch/tests -p test_worker.py
 """
 
 from __future__ import annotations
@@ -14,8 +14,8 @@ from pathlib import Path
 
 import torch
 
-ROOT = Path(__file__).resolve().parents[5]
-WORKER = ROOT / "apps" / "grove" / "workers" / "torch"
+ROOT = Path(__file__).resolve().parents[3]
+WORKER = ROOT / "workers" / "torch"
 TASK = ROOT / "examples" / "self-learning"
 PYTHON = ROOT / ".venv" / "bin" / "python"
 
@@ -298,7 +298,7 @@ class WorkerProtocolTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         if not PYTHON.exists():
-            raise unittest.SkipTest("no .venv with torch; run apps/grove/workers/torch/requirements.txt")
+            raise unittest.SkipTest("no .venv with torch; run workers/torch/requirements.txt")
 
     def test_the_worker_completes_a_handshake(self):
         process = start_worker()

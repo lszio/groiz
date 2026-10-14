@@ -5,7 +5,7 @@
 //! backend has never parsed, and the prediction that came back would
 //! describe a file the model never saw. So the container is written here,
 //! in the same format `examples/self-learning/generate.py` and
-//! `apps/grove/workers/torch/data.py` agree on, and the one rule that matters is
+//! `workers/torch/data.py` agree on, and the one rule that matters is
 //! kept: **a missing modality is a declared absence**, never a
 //! zero-filled stand-in.
 //!

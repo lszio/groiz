@@ -83,7 +83,7 @@
         device (get opts :device "cpu")
         workers (get opts :workers 2)]
     (str "demo case=" case " device=" device " workers=" workers
-         "\n  recipes are loaded from apps/grove/workers/torch/\n")))
+         "\n  recipes are loaded from workers/torch/\n")))
 
 (defn grove--inspect-handler [parsed]
   (let [opts (get parsed :options)

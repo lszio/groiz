@@ -378,11 +378,13 @@ fn the_spent_ledger_still_refuses_to_go_past_the_budget() {
 
 /// Load `libs/learning/learn/recipes.zio` into a real zio context.
 fn recipes_ctx() -> zio_core::context::EvalContext {
+    // `libs/**` ships with the sibling Zio checkout, not with Groiz.
     let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .ancestors()
-        .nth(4)
+        .nth(3)
         .unwrap()
-        .to_path_buf();
+        .to_path_buf()
+        .join("zio");
     let env = Arc::new(zio_core::env::Env::new(None));
     zio_core::builtins::setup_env(&env);
     let ctx = zio_core::context::EvalContext::new(env);

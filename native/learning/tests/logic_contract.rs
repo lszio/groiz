@@ -46,11 +46,8 @@ fn protocol() -> EvaluationProtocol {
 fn governance() -> GovernanceMap {
     GovernanceMap::new()
         .with("libs/loom/agent.zio", Governance::Governed)
-        .with(
-            "apps/grove/native/learning/src/evaluation.rs",
-            Governance::Protected,
-        )
-        .with("apps/grove/native/app/src/api.rs", Governance::Protected)
+        .with("native/learning/src/evaluation.rs", Governance::Protected)
+        .with("native/app/src/api.rs", Governance::Protected)
 }
 
 const PARENT: &str = r#"
@@ -149,7 +146,7 @@ fn a_candidate_may_not_rewrite_a_protected_region() {
         &store,
         "c-protected",
         REVISED,
-        "apps/grove/native/learning/src/evaluation.rs",
+        "native/learning/src/evaluation.rs",
         &[],
     );
     let err = logic::propose(

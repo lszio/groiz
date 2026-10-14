@@ -183,6 +183,7 @@ fn run(args: &[String]) -> Result<String, grove::contracts::Error> {
                 run_budget,
                 grant,
                 Paths::from_repo_root().root,
+                Paths::from_repo_root().share,
                 model_host,
             )?;
             let logic = opts.logic.clone();

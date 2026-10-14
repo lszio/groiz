@@ -18,10 +18,10 @@
   ;; The controller is the application business. The bridge calls
   ;; grove--browser-step by symbol; the controller must be loaded before
   ;; the bundle evaluates so the symbol resolves.
-  "/zio/apps/grove/browser-controller.zio"
+  "/groiz/browser-controller.zio"
 
   ;; Bundle entry: registers the controller and exposes the boot result.
-  "/zio/apps/grove/browser-bundle.zio"])
+  "/groiz/browser-bundle.zio"])
 
 ;; A JSON description for the build to embed alongside the bundle.
 (defn grove--manifest-entry [path]
