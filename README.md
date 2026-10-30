@@ -53,6 +53,37 @@ export GROIZ_TOKEN_READER=reader-1 GROIZ_TOKEN_OPERATOR=operator-1 \
 `GROIZ_TOKEN_{READER,ANNOTATOR,OPERATOR,PUBLISHER}`；未设置任何令牌时，非
 loopback 地址会被拒绝绑定（见 `api.zio`）。
 
+## Agent 循环
+
+`grove run` 驱动真实的 agent 循环：任务与授权上下文 → 模型生成 Zio 候选 →
+隔离执行 → 失败证据回给模型修订 → 停在 turn 上限。循环判定逻辑是
+`libs/loom/agent.zio` 的 `agent-run`；两个宿主绑定由运行方提供：
+
+- **启动器路径**（`tools/groiz run`）：`agent.zio` 用 `host/http-request`
+  调 OpenAI 兼容接口，用 `host/process-start` 把候选放进 jail 执行，候选
+  以 `zio --emit-framed` 的单帧 JSON 信封回报结果。需要 Linux namespaces；
+  其他平台执行会诚实拒绝（`capability-denied`），循环把该失败当证据继续。
+- **Rust 路径**（`grove-app` 的 AgentHost，`cargo test` 覆盖）：绑定由
+  Rust 侧装配——模型走 Loom session（测试用脚本化 ModelHost），候选走
+  `grove::execution` 沙箱。
+
+```sh
+# provider 配置：OpenAI 兼容端点，放在授予的读根内（数据根或仓库根）
+cat > /tmp/groiz-root/provider.json <<'EOF'
+{"baseURL": "https://api.openai.com/v1", "model": "gpt-4o-mini"}
+EOF
+
+export GROIZ_TOKEN_READER=reader-1 GROIZ_TOKEN_OPERATOR=operator-1 \
+       GROIZ_TOKEN_PUBLISHER=publisher-1 GROIZ_TOKEN_ANNOTATOR=annotator-1
+export GROIZ_LLM_API_KEY=sk-...          # 启动器通过 --app-env 授予
+export GROIZ_ROOT=/tmp/groiz-root        # 数据根；provider.json 在其下
+./tools/groiz run --task "..." \
+  --provider-config /tmp/groiz-root/provider.json --max-turns 3
+```
+
+候选的执行上限由启动器决定（step ceiling、墙钟、jail），不是候选自己选的；
+每次执行的暂存与结果留在数据根 `worker-scratch/agent/` 下作为证据。
+
 ## 真实合同
 
 | 脚本 | 证明什么 |

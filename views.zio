@@ -46,10 +46,16 @@
 (defn views--render-run-report [report]
   (let [status (get report :status "")
         turns (get report :turns 0)
-        exec (get report :execution {})]
+        exec (get report :execution {})
+        last (get report :last {})]
     (str "status=" status " turns=" turns
-         " execution-status=" (get exec :status "")
-         (if (get exec :error nil) (str " error=" (get exec :error "")) ""))))
+         (if (= exec {})
+           (str " last-error=" (get last :error "no error detail was reported"))
+           (str " execution-status=" (get exec :status "")
+                (if (get exec :error nil) (str " error=" (get exec :error "")) "")))
+         (if (not (= (get exec :output "") ""))
+           (str "\noutput:\n" (get exec :output ""))
+           ""))))
 
 (defn views--render-error [class detail]
   (str class ": " detail "\n"))

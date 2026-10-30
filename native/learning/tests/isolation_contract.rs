@@ -464,6 +464,10 @@ fn layer(rows: usize, cols: usize, seed: u64) -> serde_json::Value {
 
 #[test]
 fn a_mount_spec_binds_everything_read_only_except_the_scratch() {
+    if !venv_python().exists() {
+        eprintln!("skipping: no torch venv at {}", venv_python().display());
+        return;
+    }
     let fx = Fixture::new("mount_spec");
     let profile = fx.profile();
     profile.validate().expect("a complete profile");

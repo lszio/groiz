@@ -37,8 +37,15 @@ if [ -z "$ZIO_BIN" ] || [ ! -x "$ZIO_BIN" ]; then
   echo "no zio CLI: run 'cargo build --release -p zio-cli' in $ZIO_ROOT, or set ZIO_BIN" >&2
   exit 2
 fi
+# The agent loop's candidate execution runs the language binary inside the
+# jail; exporting it here and whitelisting the name below is how the app
+# learns the path — it never guesses one.
+export ZIO_BIN
 
 APP_ROOT="${GROIZ_APP_ROOT:-$ROOT}"
+# The grant keeps both spellings of this directory (canonical and as
+# given), so a `--root` the operator passes in either spelling matches:
+# on macOS /tmp and /var are symlinks and the two spellings differ.
 ROOT_DIR="${GROIZ_ROOT:-$PWD}"
 BIND="${GROIZ_BIND:-127.0.0.1:8787}"
 # The worker's interpreter: a checkout creates its own `.venv` (see README),
@@ -60,7 +67,14 @@ BACKEND="${GROIZ_TENSOR_BACKEND:-$ZIO_ROOT/contribs/tensor/backend.py}"
 # finds pyvenv.cfg; the mounts cover the real install tree and the alias
 # directory the symlink points through.
 WORKER="${GROIZ_WORKER_SCRIPT:-$APP_ROOT/workers/torch/worker.py}"
-PYTHON_BIN="$(command -v "$PYTHON")"
+# An interpreter the launcher grants but cannot find is a decision error,
+# not a fallback: exec'ing a different interpreter would silently rewrite
+# the grant, and dying here names the missing path instead.
+PYTHON_BIN="$(command -v "$PYTHON" || true)"
+if [ -z "$PYTHON_BIN" ] || [ ! -x "$PYTHON_BIN" ]; then
+  echo "granted tensor interpreter not found: $PYTHON (set GROIZ_TENSOR_PYTHON or create .venv)" >&2
+  exit 2
+fi
 PYTHON_REAL="$(readlink -f "$PYTHON_BIN")"
 PYTHON_VENV="$(readlink -f "$(dirname "$PYTHON_BIN")/..")"
 PYTHON_BASE="$(readlink -f "$(dirname "$PYTHON_REAL")/..")"
@@ -127,5 +141,7 @@ exec "$ZIO_BIN" \
   --app-env GROIZ_TOKEN_ANNOTATOR \
   --app-env GROIZ_TOKEN_OPERATOR \
   --app-env GROIZ_TOKEN_PUBLISHER \
+  --app-env ZIO_BIN \
+  --app-env GROIZ_LLM_API_KEY \
   ${worker_mounts[@]+"${worker_mounts[@]}"} \
   ${app_args[@]+"${app_args[@]}"}

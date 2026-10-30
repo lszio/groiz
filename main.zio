@@ -61,7 +61,11 @@
 
 ;; The bounded-agent entry the generic runner calls. Grove owns the
 ;; dispatch; Loom supplies the reusable loop, and the budget cap is a
-;; keyword the host meters, not a number the candidate chose.
+;; keyword the host meters, not a number the candidate chose. The host
+;; bindings `harness-complete` and `harness-execute-zio` are installed
+;; by whoever runs this file: the Rust AgentHost installs them over a
+;; loom session and the sandboxed executor; the launcher path installs
+;; the Zio implementations in agent.zio.
 (defn agent-entry [task budget]
   (require :libs.loom.agent :refer [agent-run])
   (agent-run task (get budget :max_turns 0)))
@@ -163,13 +167,14 @@
     (views--render-decline subject reason)))
 
 (defn grove--run-handler [parsed]
-  (let [opts (get parsed :options)
-        config (get opts :provider-config "")]
-    ;; ponytail: actual model-loop dispatch goes through libs/loom/agent.zio with the
-    ;; provider config read from config-path; until the Loom + provider wiring
-    ;; lands, the CLI rejects the command with the same error class the legacy
-    ;; build returned without model-http.
-    (error "invalid-input: run needs provider wiring; build with model provider enabled")))
+  (let* [opts (get parsed :options)
+         launcher (get parsed :launcher {})
+         task (get opts :task "")
+         max-turns (get opts :max-turns 3)]
+    (grove--require (not (= task "")) "invalid-input" "run needs --task")
+    (load "agent.zio")
+    (let [provider (agent--load-provider (get opts :provider-config ""))]
+      (views--render-run-report (agent--run provider task max-turns launcher)))))
 
 ;; ---------- Command handlers ----------
 ;; `serve` loads api.zio lazily: it is the one command that needs the

@@ -707,7 +707,9 @@ fn apply_limits(command: &mut Command, max_address_space: u64) {
     use std::os::unix::process::CommandExt;
     unsafe {
         command.pre_exec(move || {
-            let set = |resource: u32, value: u64| -> std::io::Result<()> {
+            // RLIMIT_* constants are c_int on BSD (macOS) and u32 on Linux;
+            // the call site takes whichever the platform's libc names.
+            let set = |resource: libc::c_int, value: u64| -> std::io::Result<()> {
                 let limit = libc::rlimit {
                     rlim_cur: value,
                     rlim_max: value,
