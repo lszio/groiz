@@ -5,3 +5,8 @@ __pycache__/
 # The CPU worker's interpreter. Created per checkout (or linked to the Zio
 # checkout's) — never committed.
 /.venv
+
+# macOS metadata (the Projects volume is not APFS-native, so the system
+# writes AppleDouble sidecars next to every file).
+._*
+.DS_Store
