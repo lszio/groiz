@@ -49,3 +49,52 @@
 - trace 面板事件行仅鼠标点选,键盘激活待补(a11y 文档已记录)。
 - 主题偏好跨域不同步(groiz/loom 异域各自记住;同键名,迁同域后天然同步)。
 - **paca / codebase-memory MCP 本会话不可用**,AGENTS.md 要求的 detect_changes 未跑(连续第二次);以人工 `git status` + 全量 diff 审查代替,JS 合同用 git 提取对比验证。
+
+---
+
+# 第二期:结构重构(2026-10-31 同日)
+
+用户反馈第一期"只是改了颜色,zio 没有调整"——第二期按指南 §8–§10 做信息架构与展示逻辑重构,zio 站点首次接入并部署上线。
+
+## 修改范围
+
+**Groiz — 从长滚动营销页到 hash 路由工作区**(groiz dev `718cccc`)
+- 五视图:总览(品牌+循环总览+生态入口)/ Observe(执行时间线+Inspector)/ Run(真实运行)/ Learn(原理四课+脚本化演示)/ 状态(健康卡)。
+- Observe:实体状态条(loom/grove 真实健康);**回合分组时间线**——turn 以 `(>= turn max-turns)` 判定调用为界(PRELUDE=行为表组装,判定行译作 继续/耗尽);Inspector = 源码窗口 + 事件详情(实参逐条/深度/tail/截断);时间轴 tick。
+- Run:任务定义 + max-turns → `POST /api/run`(跨源有界授权)→ 终态映射(candidate/exhausted/failed,不虚构等待/取消态)→ 本轮迭代时间线(游标取本轮事件,防止混入历史 run)。
+- 脚本化演示移入 Learn 并显式标注"模型由页面脚本扮演";真实运行引导到 Run。诚实声明更新为三层数据来源(REPLAY=离线 trace / LIVE+Run=真实运行 / Playground=脚本演示)。
+
+**Loom — 会话 + Inspector 双栏**(zio dev `7ea83a9`)
+- trace 从底部停靠条改为右侧 Inspector 面板(可收起,偏好持久化);会话列居中 720px。
+- 消息模型按发送者分级:you»/run»=用户意图芯片(右)、loop»=agent 事件行(左,mono+ask 色条)、loom»=对话正文、loom!=警示行;费用为计量徽章。
+
+**serve.zio — 跨源授权边界修订**(zio dev `7ea83a9`)
+- 原合同"落地页只读(chat/run 同源)"修订为"读 + 一次有界运行":/api/run 加 CORS + OPTIONS preflight(窄授权 POST+content-type,不回显请求);理由:run 有计量且服务端钳制 max-turns 1–3,与控制台同一消费面,不扩大启动器授权;chat(无界会话)与 /api/source 保持同源。smoke-trace.sh 锁定新合同。
+
+**Zio site — 首次接入设计系统并上线**(zio dev `7ea83a9`+`a69eaec`,https://zio.lszio.space)
+- global.css 全面令牌化(标记内联单源,sync 脚本第三分发目标);霓虹色(#00f2fe/#7f00ff/#ff007f)零残留(构建产物 hex 全量核验)。
+- 双主题 system/light/dark;**Shiki 双主题**(defaultColor:false + CSS 变量切换)——原构建期固定 github-dark 主题在浅色下是黑盒子;代码字体补 JetBrains Mono(原无 font-family 落到 Courier)。
+- Base.astro 主题引导+切换按钮;导航重排(语言介绍/Playground/文档/库/路线图);`apps/site/Dockerfile`(bun 构建→nginx)。
+- **部署**:dokploy 新建 project `zio` → application `zio-site`(applicationId `_iqd8v4SBNTsVRW4C1Z_6`,GitHub App 源 zio dev,context=`.`)→ domain zio.lszio.space(letsencrypt)。
+
+## 线上验收(浏览器实测)
+
+- **groiz Run 全链路**:页面发起 → 真实 agent 循环 → 终态 exhausted(警告色)→ 本轮 43 事件 turn 时间线。
+- **groiz Observe LIVE**:跨源轮询捕获 86 事件(cursor 9716),实体条全绿,Inspector 定位 agent.zio:93。
+- **loom**:双栏布局 + run 真实 trace(215 事件,Inspector 93 行高亮),消息分级正确。
+- **zio.lszio.space**:双主题;WASM REPL 活体(`(square 7)` → 49);文档代码块双主题 + 等宽字体。
+
+## 踩坑
+
+1. **Astro 模块链吞掉组件 script**:Base.astro 里普通 `<script>` 被打进 mermaid 模块链,`window.ztTheme` 未定义——主题引导/状态类必须 `is:inline`。
+2. application.create 需要 `environmentId`(project.create 响应内含)。
+3. 部署顺序:zio-site 首次部署失败是因为 Dockerfile 还没推送——远端 dev HEAD 无 `apps/site/Dockerfile`。
+4. zsh 对含 `-` 的 token 赋值(`GID=iWIa-...`)触发 `=word` 展开——用 python 执行 API 链。
+5. bun.lock 漂移导致 --frozen-lockfile 失败:本地非冻结安装后随提交更新锁文件。
+
+## 遗留
+
+- groiz Workspace 的 Rooms/Topology(指南 §8.3)仍无后端支撑,未虚构;Entits/Runs 台账依赖 reader token,已有入口。
+- Loom 无会话持久化 API,侧栏会话列表不做(避免假数据)。
+- zio site 的 Journal 页无内容,导航未加假入口。
+- trace 事件行键盘可达仍未做。
