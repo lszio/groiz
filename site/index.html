@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Groiz · 可审查的 Agent 循环</title>
-<meta name="description" content="Groiz：以 Zio 实现核心逻辑的自学习运行平台。Agent 循环原理、实现与可交互演示。">
+<title>Groiz · 自主执行控制面</title>
+<meta name="description" content="Groiz：以 Zio 实现核心逻辑的自学习运行平台。观察真实执行、发起运行、学习循环原理。">
 <meta name="theme-color" content="#EDF2F4" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#18232C" media="(prefers-color-scheme: dark)">
 <script>
@@ -42,7 +42,7 @@
     --sans: var(--zt-font-sans);
   }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  html { scroll-behavior: smooth; scroll-padding-top: 88px; }
+  html { scroll-behavior: smooth; }
   body {
     background: var(--bg);
     color: var(--text);
@@ -54,9 +54,9 @@
   a:hover { text-decoration: underline; }
   code { font-family: var(--mono); }
 
-  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 24px; }
 
-  /* ── 顶部导航:玻璃浮层(M2) ──────────────── */
+  /* ── 顶部导航:玻璃浮层(M2),应用式路由导航 ──────────────── */
   .topnav {
     position: fixed; top: 14px; left: 50%; transform: translateX(-50%);
     z-index: 50;
@@ -78,6 +78,7 @@
     transition: color var(--zt-motion-fast) var(--zt-ease), background var(--zt-motion-fast) var(--zt-ease);
   }
   .topnav a.link:hover { color: var(--text); background: var(--bg-subtle); text-decoration: none; }
+  .topnav a.link[aria-current="page"] { color: var(--text); background: var(--accent-subtle); }
   .topnav a.ext .arrow { color: var(--text-tertiary); font-size: 11px; }
   .theme-btn {
     flex: none; width: 30px; height: 30px; margin-left: 4px;
@@ -89,7 +90,16 @@
   }
   .theme-btn:hover { color: var(--text); border-color: var(--line-strong); }
 
-  /* ── hero:颗粒(M3)+ 黛蓝/天青低饱和晕 ──────────────── */
+  /* ── 视图路由:一个 .view 可见,内容由 hash 决定 ─────────────── */
+  .view { min-height: calc(100vh - 40px); }
+  .view[hidden] { display: none; }
+  .view-head { padding: 96px 0 8px; }
+  .view-head h2 { font-family: var(--zt-font-editorial); font-size: 28px; font-weight: 650; letter-spacing: -.01em; }
+  .view-head .idx { color: var(--accent-2); font-family: var(--mono); font-size: 16px; margin-right: 10px; font-weight: 500; }
+  .view-head p { color: var(--muted); max-width: 800px; margin-top: 10px; }
+  .view-body { padding: 24px 0 72px; }
+
+  /* ── hero(overview)──────────────────────── */
   header.hero {
     padding: 128px 0 72px;
     border-bottom: 1px solid var(--line);
@@ -145,26 +155,17 @@
   .btn:active { transform: translateY(1px); }
   .btn.primary { background: var(--button-bg); border-color: transparent; color: var(--button-fg); }
   .btn.primary:hover { background: var(--button-bg-hover); color: var(--button-fg); }
+  .btn.small { padding: 7px 14px; font-size: 13.5px; }
 
-  /* ── section 骨架 ──────────────── */
-  section { padding: 72px 0; border-bottom: 1px solid var(--line); }
-  h2 {
-    font-family: var(--zt-font-editorial);
-    font-size: 28px; font-weight: 650;
-    margin-bottom: 10px; letter-spacing: -.01em;
-  }
-  h2 .idx { color: var(--accent-2); font-family: var(--mono); font-size: 16px; margin-right: 10px; font-weight: 500; }
-  .section-sub { color: var(--muted); max-width: 760px; margin-bottom: 36px; }
+  section.block { padding: 56px 0; border-top: 1px solid var(--line); }
+  section.block:first-of-type { border-top: 0; }
+  .block > .wrap > h3 { font-size: 19px; font-weight: 650; margin-bottom: 8px; }
+  .block > .wrap > p.sub { color: var(--muted); max-width: 760px; margin-bottom: 24px; }
 
-  /* ── loop diagram(M4 平面 + 触感悬停) ──────────────── */
-  .loop-diagram {
-    display: flex; align-items: stretch; gap: 0;
-    flex-wrap: wrap;
-    margin: 40px 0 8px;
-  }
+  /* ── loop diagram ──────────────── */
+  .loop-diagram { display: flex; align-items: stretch; gap: 0; flex-wrap: wrap; margin: 28px 0 8px; }
   .loop-node {
-    flex: 1 1 150px;
-    min-width: 150px;
+    flex: 1 1 150px; min-width: 150px;
     background: var(--bg-surface);
     border: 1px solid var(--line);
     border-radius: var(--zt-radius-lg);
@@ -177,18 +178,11 @@
   .loop-node:hover { transform: translateY(-2px); box-shadow: var(--zt-shadow-md); }
   .loop-node + .loop-node { margin-left: 34px; }
   .loop-node::after {
-    content: "→";
-    position: absolute;
-    right: -27px; top: 50%;
-    transform: translateY(-50%);
-    color: var(--text-tertiary);
-    font-size: 20px;
+    content: "→"; position: absolute; right: -27px; top: 50%;
+    transform: translateY(-50%); color: var(--text-tertiary); font-size: 20px;
   }
   .loop-node:last-child::after { content: "↺"; right: -30px; top: -14px; transform: none; font-size: 15px; }
-  .loop-node .n {
-    font-family: var(--mono); font-size: 11px; color: var(--text-tertiary);
-    letter-spacing: .12em;
-  }
+  .loop-node .n { font-family: var(--mono); font-size: 11px; color: var(--text-tertiary); letter-spacing: .12em; }
   .loop-node .t { font-weight: 650; margin-top: 6px; font-size: 15px; }
   .loop-node .d { font-size: 13px; color: var(--muted); margin-top: 6px; line-height: 1.6; }
   .loop-node.hot {
@@ -202,14 +196,7 @@
   }
   .loop-node.stop.hot .t { color: var(--err); }
 
-  /* ── playground ──────────────── */
-  .pg {
-    display: grid;
-    grid-template-columns: minmax(320px, 1fr) minmax(340px, 1fr);
-    gap: 22px;
-    align-items: start;
-  }
-  @media (max-width: 900px) { .pg { grid-template-columns: 1fr; } }
+  /* ── 卡片 ──────────────── */
   .card {
     background: var(--card-bg);
     border: 1px solid var(--card-border);
@@ -225,7 +212,166 @@
   }
   .card .head .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); display: inline-block; margin-right: 8px; }
   .card .body { padding: 16px; }
+  .eco-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; }
+  .eco-card { display: block; padding: 18px; border-radius: var(--zt-radius-lg); background: var(--bg-surface); border: 1px solid var(--line); transition: border-color var(--zt-motion-fast) var(--zt-ease), transform var(--zt-motion-base) var(--zt-ease); }
+  .eco-card:hover { text-decoration: none; border-color: var(--line-strong); transform: translateY(-2px); }
+  .eco-card b { display: block; color: var(--text); margin-bottom: 4px; }
+  .eco-card span { color: var(--muted); font-size: 13px; }
 
+  /* ── Observe:实体状态条 ──────────────── */
+  .strip {
+    display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
+    padding: 10px 14px; margin-bottom: 16px;
+    background: var(--bg-surface); border: 1px solid var(--line); border-radius: var(--zt-radius-lg);
+    font-family: var(--mono); font-size: 12.5px; color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .strip .ent { display: inline-flex; align-items: center; gap: 7px; padding: 3px 10px; border: 1px solid var(--line); border-radius: var(--zt-radius-full); background: var(--bg-canvas); }
+  .strip .ent b { color: var(--text); font-weight: 600; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border-strong); display: inline-block; }
+  .dot.ok { background: var(--status-success); }
+  .dot.down { background: var(--status-danger); }
+  .strip .spacer { flex: 1; }
+  .strip a { font-size: 12px; }
+
+  /* ── Observe:时间线 + Inspector 分栏 ──────────────── */
+  .obs-grid { display: grid; grid-template-columns: minmax(360px, 1fr) minmax(380px, 1fr); gap: 16px; align-items: start; }
+  @media (max-width: 960px) { .obs-grid { grid-template-columns: 1fr; } }
+
+  .live-bar { display: flex; gap: 10px; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  .live-bar .mode {
+    display: flex; gap: 0; border: 1px solid var(--line); border-radius: var(--zt-radius-md);
+    overflow: hidden; background: var(--bg-surface);
+  }
+  .live-bar .mode button {
+    background: transparent; color: var(--muted); border: 0;
+    padding: 6px 14px; font: 12.5px var(--mono); cursor: pointer;
+    transition: background var(--zt-motion-fast) var(--zt-ease), color var(--zt-motion-fast) var(--zt-ease);
+  }
+  .live-bar .mode button.on { background: var(--accent-subtle); color: var(--text-primary); font-weight: 600; }
+  .live-bar .stat { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+  .live-bar label { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--muted); cursor: pointer; }
+
+  /* 回合分组时间线 */
+  .tl { max-height: 620px; overflow-y: auto; padding: 10px 12px 14px; }
+  .tl .turn { margin-bottom: 14px; }
+  .tl .turn-head {
+    font-family: var(--mono); font-size: 11.5px; color: var(--faint);
+    letter-spacing: .08em; padding: 4px 6px; margin-bottom: 4px;
+    border-bottom: 1px dashed var(--line);
+    display: flex; justify-content: space-between; gap: 8px;
+  }
+  .tl .ev {
+    display: flex; align-items: baseline; gap: 7px;
+    padding: 3px 6px; border-radius: var(--zt-radius-sm);
+    font-family: var(--mono); font-size: 12.5px;
+    color: var(--text-secondary); cursor: pointer;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .tl .ev:hover { background: var(--bg-subtle); }
+  .tl .ev.sel { background: color-mix(in srgb, var(--ph-ask) 12%, transparent); outline: 1px solid color-mix(in srgb, var(--ph-ask) 40%, transparent); }
+  .tl .ev .nm { font-weight: 600; color: var(--text); }
+  .tl .ev .ar { color: var(--muted); overflow: hidden; text-overflow: ellipsis; }
+  .tl .ev .ln-at { color: var(--faint); font-size: 11px; }
+  .tl .ev.ret { color: var(--faint); }
+  .tl .empty { color: var(--faint); font-size: 13px; padding: 12px 6px; }
+
+  /* 阶段 chip(时间线与检查器共用) */
+  .ph {
+    font-family: var(--mono); font-size: 11px; padding: 1px 8px;
+    border-radius: var(--zt-radius-full);
+    background: var(--bg-subtle); color: var(--muted);
+    white-space: nowrap; cursor: pointer; flex: none;
+  }
+  .p-ask { background: color-mix(in srgb, var(--ph-ask) 16%, var(--bg-surface)); color: var(--ph-ask); }
+  .p-extract { background: color-mix(in srgb, var(--ph-extract) 16%, var(--bg-surface)); color: var(--ph-extract); }
+  .p-exec { background: color-mix(in srgb, var(--ph-exec) 18%, var(--bg-surface)); color: var(--ph-exec); }
+  .p-check { background: color-mix(in srgb, var(--ph-check) 16%, var(--bg-surface)); color: var(--ph-check); }
+  .p-revise { background: color-mix(in srgb, var(--ph-revise) 16%, var(--bg-surface)); color: var(--ph-revise); }
+  .t-ask { background: var(--ph-ask); } .t-extract { background: var(--ph-extract); }
+  .t-exec { background: var(--ph-exec); } .t-check { background: var(--ph-check); }
+  .t-revise { background: var(--ph-revise); } .t-other { background: var(--border-strong); }
+
+  /* Inspector:源码 + 事件详情 */
+  .inspector .src-pane {
+    background: var(--bg-inset); border: 1px solid var(--line); border-radius: var(--zt-radius-md);
+    font-family: var(--mono); font-size: 12.5px; line-height: 1.55;
+    overflow: auto; max-height: 400px; padding: 10px 0;
+  }
+  .inspector .src-pane .ln { display: block; padding-right: 10px; white-space: pre; color: var(--text-secondary); }
+  .inspector .src-pane .no { display: inline-block; width: 3.4ch; text-align: right; margin-right: 12px; color: var(--text-tertiary); user-select: none; }
+  .inspector .src-pane .cur { background: var(--accent-subtle); color: var(--text-primary); box-shadow: inset 2px 0 0 var(--accent-primary); }
+  .inspector .src-pane .cur .no { color: var(--accent-primary); }
+  .inspector .src-file { font-family: var(--mono); font-size: 11.5px; color: var(--faint); padding: 8px 2px; display: flex; justify-content: space-between; }
+  .inspector .detail { margin-top: 12px; }
+  .inspector .detail .kv { display: flex; gap: 8px; padding: 5px 2px; border-top: 1px dashed var(--line); font-size: 13px; }
+  .inspector .detail .kv:first-child { border-top: 0; }
+  .inspector .detail .kv b { font-family: var(--mono); font-size: 11.5px; color: var(--faint); width: 64px; flex: none; padding-top: 2px; }
+  .inspector .detail .kv code.arg { display: block; font-size: 12px; background: var(--bg-inset); border: 1px solid var(--line); border-radius: var(--zt-radius-sm); padding: 2px 8px; margin: 2px 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+
+  /* 时间轴 tick 条 */
+  .timeline-bar { height: 16px; margin: 0 14px 8px; display: flex; align-items: flex-end; gap: 1px; overflow: hidden; cursor: crosshair; }
+  .timeline-bar .tick { width: 3px; min-height: 3px; border-radius: 1px; opacity: .85; }
+  .timeline-bar .tick:hover { opacity: 1; outline: 1px solid var(--text-primary); }
+
+  /* ── Run 工作区 ──────────────── */
+  .run-grid { display: grid; grid-template-columns: minmax(320px, 2fr) minmax(340px, 3fr); gap: 16px; align-items: start; }
+  @media (max-width: 960px) { .run-grid { grid-template-columns: 1fr; } }
+  .run-form label { display: block; font-size: 13px; color: var(--muted); margin: 14px 0 6px; }
+  .run-form input[type="text"], .run-form select {
+    width: 100%; background: var(--bg-canvas); border: 1px solid var(--input-border);
+    color: var(--text); border-radius: var(--button-radius); padding: 10px 12px;
+    font: 14px var(--mono); transition: border-color var(--zt-motion-fast) var(--zt-ease);
+  }
+  .run-form input:focus, .run-form select:focus { outline: none; border-color: var(--accent-primary); }
+  .run-form .row2 { display: flex; gap: 12px; }
+  .run-form .row2 > div { flex: 1; }
+  .run-form button[type="submit"] {
+    margin-top: 18px; width: 100%; justify-content: center;
+    background: var(--button-bg); color: var(--button-fg);
+    border: 0; border-radius: var(--button-radius); padding: 11px 20px;
+    font: 600 15px var(--sans); cursor: pointer;
+    transition: background var(--zt-motion-base) var(--zt-ease);
+  }
+  .run-form button[type="submit"]:hover { background: var(--button-bg-hover); }
+  .run-form button[type="submit"]:disabled { opacity: .5; cursor: default; }
+  .run-hint { font-size: 12px; color: var(--faint); margin-top: 12px; line-height: 1.6; }
+
+  /* 结果五态:状态必须真实,不做 Loading 假象 */
+  .outcome { display: none; padding: 14px 16px; border-radius: var(--zt-radius-md); border: 1px solid var(--line); margin-bottom: 14px; }
+  .outcome.show { display: block; }
+  .outcome .o-head { display: flex; align-items: center; gap: 10px; font-weight: 650; }
+  .outcome .o-state { font-family: var(--mono); font-size: 12px; padding: 2px 10px; border-radius: var(--zt-radius-full); }
+  .outcome .o-body { font-size: 13px; color: var(--muted); margin-top: 8px; font-family: var(--mono); overflow-wrap: anywhere; white-space: pre-wrap; }
+  .outcome.ok { border-color: color-mix(in srgb, var(--status-success) 40%, transparent); background: color-mix(in srgb, var(--status-success) 8%, transparent); }
+  .outcome.ok .o-state { background: color-mix(in srgb, var(--status-success) 18%, transparent); color: var(--status-success); }
+  .outcome.warn { border-color: color-mix(in srgb, var(--status-warning) 40%, transparent); background: color-mix(in srgb, var(--status-warning) 8%, transparent); }
+  .outcome.warn .o-state { background: color-mix(in srgb, var(--status-warning) 18%, transparent); color: var(--status-warning); }
+  .outcome.bad { border-color: color-mix(in srgb, var(--status-danger) 40%, transparent); background: color-mix(in srgb, var(--status-danger) 8%, transparent); }
+  .outcome.bad .o-state { background: color-mix(in srgb, var(--status-danger) 18%, transparent); color: var(--status-danger); }
+  .outcome.running { border-color: var(--line); }
+  .outcome.running .o-state { background: var(--bg-subtle); color: var(--text-secondary); }
+
+  /* ── teaching / playground(Learn)──────────────── */
+  .lesson { display: grid; grid-template-columns: minmax(260px, 5fr) minmax(320px, 7fr); gap: 28px; margin-bottom: 56px; }
+  @media (max-width: 900px) { .lesson { grid-template-columns: 1fr; } }
+  .lesson .prose h4 { font-size: 18px; margin-bottom: 12px; font-weight: 650; }
+  .lesson .prose p { color: var(--muted); margin-bottom: 12px; font-size: 15px; }
+  .lesson .prose p b, .lesson .prose p strong { color: var(--text); }
+  .lesson .prose ul { color: var(--muted); margin: 0 0 12px 20px; font-size: 15px; }
+  .lesson .prose li { margin-bottom: 6px; }
+  .lesson .prose code.inline, p code, li code {
+    font-family: var(--mono); font-size: .88em;
+    background: var(--bg-subtle); border: 1px solid var(--line);
+    padding: 1px 6px; border-radius: var(--zt-radius-sm); color: var(--accent);
+  }
+  .map-table { width: 100%; border-collapse: collapse; font-size: 13.5px; margin: 14px 0 18px; }
+  .map-table th, .map-table td { border: 1px solid var(--line); padding: 8px 12px; text-align: left; }
+  .map-table th { background: var(--bg-subtle); font-family: var(--mono); font-size: 12px; color: var(--muted); font-weight: 500; }
+  .map-table td:first-child { font-family: var(--mono); color: var(--accent); font-size: 12.5px; white-space: nowrap; }
+
+  .pg { display: grid; grid-template-columns: minmax(320px, 1fr) minmax(340px, 1fr); gap: 22px; align-items: start; }
+  @media (max-width: 900px) { .pg { grid-template-columns: 1fr; } }
   .pg-controls { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 16px; }
   .pg-controls button {
     font-family: var(--mono); font-size: 13px;
@@ -239,28 +385,23 @@
   .pg-controls button:disabled { opacity: .4; cursor: not-allowed; box-shadow: none; }
   .pg-controls button.main { background: var(--button-bg); color: var(--button-fg); border-color: transparent; font-weight: 700; }
   .pg-controls button.main:hover { background: var(--button-bg-hover); color: var(--button-fg); }
-
   .pg-state {
     font-family: var(--mono); font-size: 12.5px; color: var(--muted);
     display: flex; gap: 16px; flex-wrap: wrap;
     padding: 10px 14px;
     background: var(--bg-inset);
     border: 1px solid var(--line); border-radius: var(--zt-radius-md);
-    margin-bottom: 16px;
-    font-variant-numeric: tabular-nums;
+    margin-bottom: 16px; font-variant-numeric: tabular-nums;
   }
   .pg-state b { color: var(--text); font-weight: 600; }
   .pg-state .budget-bar { flex: 1 1 140px; align-self: center; }
   .budget-track { height: 6px; background: var(--bg-subtle); border-radius: var(--zt-radius-full); overflow: hidden; }
   .budget-fill { height: 100%; background: var(--accent-primary); width: 0%; transition: width var(--zt-motion-panel) var(--zt-ease); }
   .budget-fill.exhausted { background: var(--status-danger); }
-
   .stage-feed { display: flex; flex-direction: column; gap: 12px; max-height: 560px; overflow-y: auto; padding-right: 4px; }
   .stage {
-    border: 1px solid var(--line);
-    border-left: 3px solid var(--line-strong);
-    border-radius: var(--zt-radius-md);
-    background: var(--bg-surface);
+    border: 1px solid var(--line); border-left: 3px solid var(--line-strong);
+    border-radius: var(--zt-radius-md); background: var(--bg-surface);
     padding: 10px 14px 12px;
     animation: slidein var(--zt-motion-panel) var(--zt-ease);
   }
@@ -277,13 +418,9 @@
   .stage.final { border-left-color: var(--status-success); }
   .stage .s-body { font-size: 13.5px; }
 
-  /* 代码区:M4 平面,内嵌表面 + 令牌化语法色(双主题自适应) */
   pre {
-    font-family: var(--mono);
-    font-size: 12.5px;
-    line-height: 1.7;
-    overflow-x: auto;
-    color: var(--text-secondary);
+    font-family: var(--mono); font-size: 12.5px; line-height: 1.7;
+    overflow-x: auto; color: var(--text-secondary);
   }
   pre.code {
     background: var(--bg-inset);
@@ -301,7 +438,6 @@
     border-radius: 3px;
     box-shadow: 0 0 0 2px color-mix(in srgb, var(--ph-check) 16%, transparent);
   }
-
   .code-panel .body { padding: 0; }
   .code-file {
     font-family: var(--mono); font-size: 11.5px; color: var(--muted);
@@ -311,36 +447,8 @@
   }
   .code-block { padding: 14px; max-height: 560px; overflow-y: auto; }
 
-  /* ── teaching ──────────────── */
-  .lesson { display: grid; grid-template-columns: minmax(260px, 5fr) minmax(320px, 7fr); gap: 28px; margin-bottom: 56px; }
-  @media (max-width: 900px) { .lesson { grid-template-columns: 1fr; } }
-  .lesson .prose h3 { font-size: 19px; margin-bottom: 12px; font-weight: 650; }
-  .lesson .prose p { color: var(--muted); margin-bottom: 12px; font-size: 15px; }
-  .lesson .prose p b, .lesson .prose p strong { color: var(--text); }
-  .lesson .prose ul { color: var(--muted); margin: 0 0 12px 20px; font-size: 15px; }
-  .lesson .prose li { margin-bottom: 6px; }
-  .lesson .prose code.inline, p code, li code {
-    font-family: var(--mono); font-size: .88em;
-    background: var(--bg-subtle); border: 1px solid var(--line);
-    padding: 1px 6px; border-radius: var(--zt-radius-sm); color: var(--accent);
-  }
-  .map-table { width: 100%; border-collapse: collapse; font-size: 13.5px; margin: 14px 0 18px; }
-  .map-table th, .map-table td { border: 1px solid var(--line); padding: 8px 12px; text-align: left; }
-  .map-table th { background: var(--bg-subtle); font-family: var(--mono); font-size: 12px; color: var(--muted); font-weight: 500; }
-  .map-table td:first-child { font-family: var(--mono); color: var(--accent); font-size: 12.5px; white-space: nowrap; }
-
-  /* ── footer ──────────────── */
-  footer { padding: 56px 0 72px; color: var(--muted); font-size: 14px; }
-  footer .repos { display: flex; gap: 22px; flex-wrap: wrap; margin-bottom: 18px; }
-  .honest {
-    border: 1px solid var(--line); border-left: 3px solid var(--warn);
-    background: var(--bg-soft); border-radius: var(--zt-radius-md);
-    padding: 12px 16px; font-size: 13.5px; max-width: 820px;
-  }
-  footer .fine { margin-top: 22px; font-size: 12.5px; color: var(--text-tertiary); }
-
-  /* ── 03 运行状态 ── */
-  .status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 22px; }
+  /* ── 状态视图 ──────────────── */
+  .status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
   .status-card {
     background: var(--card-bg); border: 1px solid var(--card-border);
     border-radius: var(--zt-radius-lg); box-shadow: var(--card-shadow);
@@ -350,9 +458,6 @@
   .status-card .sub { color: var(--muted); font-size: 12px; margin-bottom: 12px; }
   .status-card .row { display: flex; justify-content: space-between; font-size: 13px; padding: 3px 0; border-top: 1px dashed var(--line); font-variant-numeric: tabular-nums; }
   .status-card .row b { color: var(--text); font-weight: 500; }
-  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border-strong); display: inline-block; }
-  .dot.ok { background: var(--status-success); }
-  .dot.down { background: var(--status-danger); }
   .status-card input {
     background: var(--bg-canvas); border: 1px solid var(--input-border); color: var(--text);
     border-radius: var(--zt-radius-sm); padding: 6px 9px; font: 12px var(--mono); width: 100%; box-sizing: border-box;
@@ -361,209 +466,249 @@
   .status-card input:focus { border-color: var(--accent-primary); outline: none; }
   .status-card .hint { color: var(--muted); font-size: 11px; margin-top: 8px; line-height: 1.5; }
 
-  /* ── 04 函数执行实况:编辑器平面(M4)+ 阶段色令牌 ── */
-  .live-shell {
-    background: var(--card-bg); border: 1px solid var(--card-border);
-    border-radius: var(--zt-radius-lg); box-shadow: var(--card-shadow);
-    overflow: hidden; margin-top: 22px;
+  /* ── footer ──────────────── */
+  footer { padding: 48px 0 64px; border-top: 1px solid var(--line); color: var(--muted); font-size: 14px; }
+  footer .repos { display: flex; gap: 22px; flex-wrap: wrap; margin-bottom: 18px; }
+  .honest {
+    border: 1px solid var(--line); border-left: 3px solid var(--warn);
+    background: var(--bg-soft); border-radius: var(--zt-radius-md);
+    padding: 12px 16px; font-size: 13.5px; max-width: 860px;
   }
-  .live-bar { display: flex; gap: 10px; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
-  .live-bar .mode {
-    display: flex; gap: 0; border: 1px solid var(--line); border-radius: var(--zt-radius-md);
-    overflow: hidden; background: var(--bg-surface);
-  }
-  .live-bar .mode button {
-    background: transparent; color: var(--muted); border: 0;
-    padding: 6px 14px; font: 12.5px var(--mono); cursor: pointer;
-    transition: background var(--zt-motion-fast) var(--zt-ease), color var(--zt-motion-fast) var(--zt-ease);
-  }
-  .live-bar .mode button.on { background: var(--accent-subtle); color: var(--text-primary); font-weight: 600; }
-  .live-bar .stat { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
-  .live-main { display: flex; min-height: 380px; }
-  .live-src {
-    flex: 1.15; overflow: auto; border-right: 1px solid var(--line);
-    background: var(--bg-inset);
-    font-family: var(--mono);
-    font-size: 12.5px; line-height: 1.55; padding: 10px 0; position: relative;
-  }
-  .live-src .ln { display: block; padding-right: 10px; white-space: pre; color: var(--text-secondary); }
-  .live-src .no { display: inline-block; width: 3.4ch; text-align: right; margin-right: 12px; color: var(--text-tertiary); user-select: none; }
-  .live-src .cur { background: var(--accent-subtle); color: var(--text-primary); box-shadow: inset 2px 0 0 var(--accent-primary); }
-  .live-src .cur .no { color: var(--accent-primary); }
-  .live-right { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-  .live-phases { display: flex; gap: 4px; padding: 10px 12px 6px; align-items: center; overflow: hidden; }
-  .live-phases .ph {
-    font-family: var(--mono);
-    font-size: 11px; padding: 2px 9px; border-radius: var(--zt-radius-full);
-    background: var(--bg-subtle); color: var(--muted);
-    white-space: nowrap; cursor: pointer;
-  }
-  .live-timeline { height: 18px; margin: 0 12px 6px; display: flex; align-items: flex-end; gap: 1px; overflow: hidden; cursor: crosshair; }
-  .live-timeline .tick { width: 3px; min-height: 3px; border-radius: 1px; opacity: .85; }
-  .live-stack { flex: 1; overflow-y: auto; padding: 2px 12px 12px; font-size: 12.5px; font-family: var(--mono); font-variant-numeric: tabular-nums; }
-  .live-stack .ev { padding: 1px 6px; border-radius: var(--zt-radius-sm); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-secondary); }
-  .live-stack .ev .nm { font-weight: 600; color: var(--text-primary); }
-  .live-stack .ev .ar { color: var(--muted); }
-  .live-stack .ev .tr { color: var(--ph-exec); font-size: 11px; }
-  .live-stack .ev.cur {
-    background: color-mix(in srgb, var(--ph-ask) 12%, transparent);
-    outline: 1px solid color-mix(in srgb, var(--ph-ask) 40%, transparent);
-  }
-  .live-stack .ev.ret { color: var(--text-tertiary); }
-  .live-note { padding: 6px 14px 10px; color: var(--muted); font-size: 11.5px; line-height: 1.6; }
+  footer .fine { margin-top: 22px; font-size: 12.5px; color: var(--text-tertiary); }
 
-  /* 阶段色:值来自 tokens.css 的 --ph-*,两主题各一套 */
-  .p-ask { background: color-mix(in srgb, var(--ph-ask) 16%, var(--bg-surface)); color: var(--ph-ask); }
-  .p-extract { background: color-mix(in srgb, var(--ph-extract) 16%, var(--bg-surface)); color: var(--ph-extract); }
-  .p-exec { background: color-mix(in srgb, var(--ph-exec) 18%, var(--bg-surface)); color: var(--ph-exec); }
-  .p-check { background: color-mix(in srgb, var(--ph-check) 16%, var(--bg-surface)); color: var(--ph-check); }
-  .p-revise { background: color-mix(in srgb, var(--ph-revise) 16%, var(--bg-surface)); color: var(--ph-revise); }
-  .t-ask { background: var(--ph-ask); } .t-extract { background: var(--ph-extract); }
-  .t-exec { background: var(--ph-exec); } .t-check { background: var(--ph-check); }
-  .t-revise { background: var(--ph-revise); } .t-other { background: var(--border-strong); }
-
-  @media (max-width: 860px) { .live-main { flex-direction: column; } .live-src { max-height: 300px; border-right: 0; border-bottom: 1px solid var(--line); } }
   @media (max-width: 640px) {
-    header.hero { padding: 104px 0 56px; }
-    section { padding: 56px 0; }
+    header.hero, .view-head { padding-top: 104px; }
+    section.block { padding: 44px 0; }
   }
 </style>
 </head>
 <body>
 
-<nav class="topnav zt-glass" aria-label="页面导航">
+<nav class="topnav zt-glass" aria-label="应用导航">
   <span class="brand">groiz</span>
   <span class="sep" aria-hidden="true"></span>
-  <a class="link" href="#loop">循环总览</a>
-  <a class="link" href="#playground">Playground</a>
-  <a class="link" href="#teaching">原理</a>
-  <a class="link" href="#status">运行状态</a>
-  <a class="link" href="#live">执行实况</a>
+  <a class="link" href="#/overview">总览</a>
+  <a class="link" href="#/observe">Observe</a>
+  <a class="link" href="#/run">Run</a>
+  <a class="link" href="#/learn">Learn</a>
+  <a class="link" href="#/status">状态</a>
   <span class="sep" aria-hidden="true"></span>
   <a class="link ext" href="https://loom.lszio.space" target="_blank" rel="noopener">loom 控制台 <span class="arrow">↗</span></a>
   <a class="link ext" href="https://github.com/lszio/groiz" target="_blank" rel="noopener">GitHub <span class="arrow">↗</span></a>
   <button id="themeBtn" class="theme-btn" type="button" aria-label="切换主题">◐</button>
 </nav>
 
-<header class="hero zt-grain">
-  <div class="wrap">
-    <div class="kicker">GROIZ · grove</div>
-    <h1>让 agent 的显式逻辑<span class="dim">成为可审查的程序</span></h1>
-    <p class="lead">
-      Groiz 是一个治理学习运行平台。它的 agent 循环不是提示词的隐式编排，而是一段
-      <b>真实执行的 Zio 程序</b>：什么时候问模型、怎么对待执行失败、何时停止，都写在代码里，可以被读取、比较和改写。
-      这一页把这个循环拆开讲清楚，并让你亲手把它走一遍。
-    </p>
-    <div class="cta">
-      <a class="btn primary" href="#playground">进入 Playground</a>
-      <a class="btn" href="#live">函数执行实况</a>
-      <a class="btn" href="#teaching">先看原理</a>
-      <a class="btn" href="https://github.com/lszio/groiz" target="_blank" rel="noopener">GitHub 仓库</a>
+<!-- ═══ 总览 ═══ -->
+<section class="view" data-view="overview" id="view-overview">
+  <header class="hero zt-grain">
+    <div class="wrap">
+      <div class="kicker">GROIZ · grove — 自主执行控制面</div>
+      <h1>让 agent 的显式逻辑<span class="dim">成为可审查的程序</span></h1>
+      <p class="lead">
+        Groiz 是一个治理学习运行平台。它的 agent 循环不是提示词的隐式编排，而是一段
+        <b>真实执行的 Zio 程序</b>：什么时候问模型、怎么对待执行失败、何时停止，都写在代码里，可以被读取、比较和改写。
+        在这里观察真实的执行、亲手发起一次运行、或者拆开循环学习它。
+      </p>
+      <div class="cta">
+        <a class="btn primary" href="#/observe">进入 Observe</a>
+        <a class="btn" href="#/run">发起一次运行</a>
+        <a class="btn" href="#/learn">先学原理</a>
+      </div>
     </div>
-  </div>
-</header>
+  </header>
 
-<section id="loop">
-  <div class="wrap">
-    <h2><span class="idx">00</span>循环总览</h2>
-    <p class="section-sub">
-      一次 Groiz agent 运行的完整回合。决定"下一步做什么"的判定逻辑跑在 Zio 里；
-      模型调用与候选执行是两个<b>宿主绑定</b>——宿主决定一次调用花多少预算、一段代码能碰到什么，程序自己无法扩大。
-    </p>
-    <div class="loop-diagram" id="loopDiagram">
-      <div class="loop-node" data-node="task">
-        <div class="n">TASK</div><div class="t">任务与预算</div>
-        <div class="d">任务描述 + <code>max-turns</code>，上限由宿主给定</div>
-      </div>
-      <div class="loop-node" data-node="model">
-        <div class="n">ASK</div><div class="t">询问模型</div>
-        <div class="d"><code>complete</code>（行为表项）：任务 + 上一轮失败证据 → 程序候选</div>
-      </div>
-      <div class="loop-node" data-node="exec">
-        <div class="n">EXECUTE</div><div class="t">隔离执行</div>
-        <div class="d"><code>execute</code>（行为表项）：jail 里的 zio 进程，单帧 JSON 信封回报</div>
-      </div>
-      <div class="loop-node" data-node="feedback">
-        <div class="n">REVISION</div><div class="t">失败即证据</div>
-        <div class="d">非 completed 的结果原样带回下一轮，不做摘要、不美化</div>
-      </div>
-      <div class="loop-node stop" data-node="stop">
-        <div class="n">STOP</div><div class="t">候选或耗尽</div>
-        <div class="d"><code>candidate</code>（执行成功）或 <code>exhausted</code>（到达 turn 上限）</div>
+  <section class="block">
+    <div class="wrap">
+      <h3>循环总览</h3>
+      <p class="sub">
+        一次 Groiz agent 运行的完整回合。决定"下一步做什么"的判定逻辑跑在 Zio 里；
+        模型调用与候选执行是两个<b>宿主绑定</b>——宿主决定一次调用花多少预算、一段代码能碰到什么，程序自己无法扩大。
+        <a href="#/observe">Observe</a> 里能看到这些节点在真实 trace 中的对应调用。
+      </p>
+      <div class="loop-diagram" id="loopDiagram">
+        <div class="loop-node" data-node="task">
+          <div class="n">TASK</div><div class="t">任务与预算</div>
+          <div class="d">任务描述 + <code>max-turns</code>，上限由宿主给定</div>
+        </div>
+        <div class="loop-node" data-node="model">
+          <div class="n">ASK</div><div class="t">询问模型</div>
+          <div class="d"><code>complete</code>（行为表项）：任务 + 上一轮失败证据 → 程序候选</div>
+        </div>
+        <div class="loop-node" data-node="exec">
+          <div class="n">EXECUTE</div><div class="t">隔离执行</div>
+          <div class="d"><code>execute</code>（行为表项）：jail 里的 zio 进程，单帧 JSON 信封回报</div>
+        </div>
+        <div class="loop-node" data-node="feedback">
+          <div class="n">REVISION</div><div class="t">失败即证据</div>
+          <div class="d">非 completed 的结果原样带回下一轮，不做摘要、不美化</div>
+        </div>
+        <div class="loop-node stop" data-node="stop">
+          <div class="n">STOP</div><div class="t">候选或耗尽</div>
+          <div class="d"><code>candidate</code>（执行成功）或 <code>exhausted</code>（到达 turn 上限）</div>
+        </div>
       </div>
     </div>
-  </div>
+  </section>
+
+  <section class="block">
+    <div class="wrap">
+      <h3>生态</h3>
+      <p class="sub">Groiz 以 Zio 为语言、以 Loom 为 harness；三个入口都是真实服务的公开面。</p>
+      <div class="eco-grid">
+        <a class="eco-card" href="https://loom.lszio.space" target="_blank" rel="noopener">
+          <b>loom 控制台 ↗</b>
+          <span>agent 框架线上实例：预算会话 + 函数执行实况(本页 Observe 的数据源)。</span>
+        </a>
+        <a class="eco-card" href="https://api.groiz.lszio.space/api/health" target="_blank" rel="noopener">
+          <b>grove 控制面 ↗</b>
+          <span>学习运行的平台面：运行台账 / 事件日志(reader 角色鉴权)。</span>
+        </a>
+        <a class="eco-card" href="https://github.com/lszio/zio" target="_blank" rel="noopener">
+          <b>lszio/zio ↗</b>
+          <span>通用 Lisp 语言本体与 Loom 库——循环判定逻辑住在这里。</span>
+        </a>
+      </div>
+    </div>
+  </section>
 </section>
 
-<section id="playground">
+<!-- ═══ Observe:执行时间线 + Inspector ═══ -->
+<section class="view" data-view="observe" id="view-observe" hidden>
   <div class="wrap">
-    <h2><span class="idx">01</span>Playground：把循环走一遍</h2>
-    <p class="section-sub">
-      点"下一步"逐阶段推进，或"运行到底"看完整回合。每一阶段都会在右侧代码面板
-      <b>高亮真正实现它的那一行</b>——不是伪代码，是仓库里正在运行的源码。
-      模型由页面脚本模拟：第 1 轮故意返回一个有错的程序，第 2 轮修订——与仓库内合同测试的做法一致。
-    </p>
-    <div class="pg">
-      <div class="card">
-        <div class="head"><span><span class="dot"></span>运行面板</span><span>turn: <span id="pgTurn">0</span></span></div>
-        <div class="body">
-          <div class="pg-state">
-            <span>status: <b id="pgStatus">idle</b></span>
-            <span>max-turns: <b>3</b></span>
-            <span class="budget-bar"><div class="budget-track"><div class="budget-fill" id="pgBudget"></div></div></span>
+    <div class="view-head">
+      <h2><span class="idx">01</span>Observe — 执行时间线</h2>
+      <p>
+        agent 循环在被教学观测器观测(第二个观测端口,显式 opt-in,白名单只监听 agent.zio,凭据流经的模块不在端口内)。
+        时间线按 <b>turn 分组</b>:每个回合从 <code>(if (>= turn max-turns)</code> 的判定开始;点击任意事件,Inspector 显示它那一行源码与完整实参。
+        REPLAY 是一次真实离线运行(jail 诚实拒绝,两轮修订后耗尽);LIVE 轮询 loom 控制台的最新运行。
+      </p>
+    </div>
+    <div class="view-body">
+      <div class="strip" id="obsStrip">
+        <span class="ent"><span class="dot" id="oLoomDot"></span>loom <b id="oLoom">…</b></span>
+        <span class="ent">teach <b id="oTeach">…</b></span>
+        <span class="ent">cursor <b id="oCursor">…</b></span>
+        <span class="ent"><span class="dot" id="oGroveDot"></span>grove <b id="oGrove">…</b></span>
+        <span class="spacer"></span>
+        <a href="#/status">完整状态 →</a>
+      </div>
+      <div class="obs-grid">
+        <div class="card">
+          <div class="live-bar">
+            <div class="mode">
+              <button id="mReplay" class="on">REPLAY</button>
+              <button id="mLive">LIVE · loom.lszio.space</button>
+            </div>
+            <label><input type="checkbox" id="follow" checked style="width:auto"> 跟随最新</label>
+            <span class="stat" id="liveStat"></span>
           </div>
-          <div class="pg-controls">
-            <button class="main" id="btnStep">下一步 →</button>
-            <button id="btnRun">运行到底</button>
-            <button id="btnReset">重置</button>
-          </div>
-          <div class="stage-feed" id="pgFeed">
-            <div class="stage"><div class="s-head"><span>等待开始</span><span class="tag">idle</span></div>
-              <div class="s-body" style="color:var(--muted)">点击「下一步」开始。任务：<b style="color:var(--text)">“计算 21 的两倍并打印结果”</b>，预算 3 turns。</div>
+          <div class="timeline-bar" id="liveTimeline" title="点击回看事件"></div>
+          <div class="tl" id="liveTl"><div class="empty">…</div></div>
+        </div>
+        <div class="card inspector">
+          <div class="head"><span><span class="dot" style="background:var(--accent-2)"></span>Inspector</span><span id="insWhere">libs/loom/agent.zio</span></div>
+          <div class="body">
+            <div class="src-file"><span id="insFile">libs/loom/agent.zio</span><span>Zio</span></div>
+            <div class="src-pane" id="insSrc"></div>
+            <div class="detail" id="insDetail">
+              <div class="kv"><b>提示</b><span style="color:var(--faint);font-size:12.5px">点击时间线或时间轴中的事件,查看那一行的调用与实参。</span></div>
             </div>
           </div>
         </div>
       </div>
-      <div class="card code-panel">
-        <div class="head"><span><span class="dot" style="background:var(--accent-2)"></span>实现源码</span><span id="codeWhere">libs/loom/agent.zio</span></div>
-        <div class="body">
-          <div class="code-file"><span id="codeFile">libs/loom/agent.zio — agent-run</span><span>Zio</span></div>
-          <div class="code-block" id="codeBlock"></div>
-        </div>
-      </div>
     </div>
   </div>
 </section>
 
-<section id="teaching">
+<!-- ═══ Run:真实运行工作区 ═══ -->
+<section class="view" data-view="run" id="view-run" hidden>
   <div class="wrap">
-    <h2><span class="idx">02</span>原理：判定逻辑与宿主能力的分离</h2>
-    <p class="section-sub">
-      循环只有一个调用点：Zio 决定<b>何时问、问完怎么办、何时停</b>；
-      宿主决定一次模型调用花多少预算、一段程序被允许碰到什么、跑多久。两件事在同一份源码里划得很清楚。
-    </p>
-
-    <div class="lesson">
-      <div class="prose">
-        <h3>整个循环，就这一个函数</h3>
-        <p>
-          <code class="inline">agent-run</code> 是循环的全部控制流：带一个 turn 计数和一个 feedback 值递归（尾递归）。
-          循环读的是<b>行为表</b>——每个判定都是表里的一项。每轮做三件事：<b>问</b>（<code class="inline">complete</code> 拿到回复），<b>执行</b>（<code class="inline">execute</code> 跑真实进程），
-          <b>判定</b>（<code class="inline">candidate?</code> 成立 → candidate 结束；否则带着失败证据进下一轮）。
-        </p>
-        <p>
-          注意 <code class="inline">max-turns</code> 的来源——它是<b>宿主传进来的上限</b>，不是程序自己决定的数。
-          注释里写明了：就算这段代码无视这个参数，宿主也在独立计量调用次数。
-          循环自己没有能力给自己加轮次。
-        </p>
-        <p>
-          失败的反馈<b>原样传递</b>（<code class="inline">feedback-of</code> 不做摘要）：
-          一轮修订如果只能看到失败原因的转述，那它是在猜。这是整个设计里最实用主义的一条。
-        </p>
+    <div class="view-head">
+      <h2><span class="idx">02</span>Run — 发起一次运行</h2>
+      <p>
+        把任务交给 loom 控制台的 agent 循环(跨源调用 <code>POST /api/run</code>;服务端把 max-turns 钳制在 1–3,宿主独立计量——这是启动器授予的有界消费面,chat 仍然只在 loom 控制台同源开放)。
+        运行结束后,这一轮的全部函数调用会以 turn 时间线展示。
+      </p>
+    </div>
+    <div class="view-body">
+      <div class="run-grid">
+        <div class="card">
+          <div class="head"><span><span class="dot"></span>任务定义</span><span>POST /api/run</span></div>
+          <div class="body run-form">
+            <form id="runForm">
+              <label for="runTask">任务(task)</label>
+              <input type="text" id="runTask" value="print the sum 1..10" autocomplete="off">
+              <div class="row2">
+                <div>
+                  <label for="runTurns">max-turns(服务端钳制 1–3)</label>
+                  <select id="runTurns">
+                    <option value="1">1</option>
+                    <option value="2" selected>2</option>
+                    <option value="3">3</option>
+                  </select>
+                </div>
+              </div>
+              <button type="submit" id="runBtn">发起运行</button>
+            </form>
+            <p class="run-hint">
+              运行在 loom 控制台执行(mock 上游;换真实模型由 dokploy 环境变量决定)。容器 jail 无 Linux namespace 时以
+              <code>capability-denied</code> 诚实拒绝候选执行——失败是证据,不是故障。
+            </p>
+          </div>
+        </div>
+        <div>
+          <div class="outcome" id="runOutcome">
+            <div class="o-head"><span class="o-state" id="oState">…</span><span id="oTitle"></span></div>
+            <div class="o-body" id="oBody"></div>
+          </div>
+          <div class="card">
+            <div class="head"><span><span class="dot" style="background:var(--accent-2)"></span>本轮迭代时间线</span><span id="runStat"></span></div>
+            <div class="timeline-bar" id="runTimelineBar"></div>
+            <div class="tl" id="runTl" style="max-height:420px"><div class="empty">发起运行后,这一轮的函数调用会出现在这里。</div></div>
+          </div>
+        </div>
       </div>
-      <div class="card code-panel">
-        <div class="code-file"><span>libs/loom/agent.zio — Zio 库（Loom）</span><span>循环判定</span></div>
-        <div class="code-block"><pre class="code"><span class="cm">;; 循环本身:判定逻辑全是行为表的项。max-turns 是</span>
+      <p class="run-hint" style="margin-top:14px">
+        状态对照:循环只产出一个真实终态 —— <code>candidate</code>(执行成功,进入候选)/ <code>exhausted</code>(到达 turn 上限)/
+        <code>failed</code>(执行或提取失败)。没有"等待确认/已取消"这类本后端不产生的状态;界面不虚构。
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ Learn:原理 + 脚本化演示 ═══ -->
+<section class="view" data-view="learn" id="view-learn" hidden>
+  <div class="wrap">
+    <div class="view-head">
+      <h2><span class="idx">03</span>Learn — 判定逻辑与宿主能力的分离</h2>
+      <p>
+        循环只有一个调用点：Zio 决定<b>何时问、问完怎么办、何时停</b>；
+        宿主决定一次模型调用花多少预算、一段程序被允许碰到什么、跑多久。两件事在同一份源码里划得很清楚。
+      </p>
+    </div>
+    <div class="view-body">
+
+      <div class="lesson">
+        <div class="prose">
+          <h4>整个循环，就这一个函数</h4>
+          <p>
+            <code class="inline">agent-run</code> 是循环的全部控制流：带一个 turn 计数和一个 feedback 值递归（尾递归）。
+            循环读的是<b>行为表</b>——每个判定都是表里的一项。每轮做三件事：<b>问</b>（<code class="inline">complete</code> 拿到回复），<b>执行</b>（<code class="inline">execute</code> 跑真实进程），
+            <b>判定</b>（<code class="inline">candidate?</code> 成立 → candidate 结束；否则带着失败证据进下一轮）。
+          </p>
+          <p>
+            注意 <code class="inline">max-turns</code> 的来源——它是<b>宿主传进来的上限</b>，不是程序自己决定的数。
+            注释里写明了：就算这段代码无视这个参数，宿主也在独立计量调用次数。
+            循环自己没有能力给自己加轮次。
+          </p>
+          <p>
+            失败的反馈<b>原样传递</b>（<code class="inline">feedback-of</code> 不做摘要）：
+            一轮修订如果只能看到失败原因的转述，那它是在猜。这是整个设计里最实用主义的一条。
+          </p>
+        </div>
+        <div class="card code-panel">
+          <div class="code-file"><span>libs/loom/agent.zio — Zio 库（Loom）</span><span>循环判定</span></div>
+          <div class="code-block"><pre class="code"><span class="cm">;; 循环本身:判定逻辑全是行为表的项。max-turns 是</span>
 <span class="cm">;; 宿主授予的上限,不是这段代码决定的数:调用计数</span>
 <span class="cm">;; 在宿主侧独立计量。</span>
 (<span class="kw">defn</span> <span class="fn">agent-run</span> [task behavior]
@@ -592,37 +737,37 @@
   {:status  (<span class="fn">get</span> outcome <span class="st">:status</span> <span class="st">"failed"</span>)
    :error   (<span class="fn">get</span> outcome <span class="st">:error</span> <span class="st">"no error detail was reported"</span>)
    :turns   (<span class="fn">get</span> outcome <span class="st">:turns</span> 0)})</pre></div>
+        </div>
       </div>
-    </div>
 
-    <div class="lesson">
-      <div class="prose">
-        <h3>两个宿主绑定：合同先行</h3>
-        <p>
-          <code class="inline">complete</code> 与 <code class="inline">execute</code>（行为表项，由
-          <code class="inline">make-complete-binding</code> / <code class="inline">make-execute-binding</code> 组装）
-          是循环不能自己完成的两件事。它们按<b>调用方</b>装配：
-        </p>
-        <ul>
-          <li><b>启动器路径</b>（<code class="inline">tools/groiz run</code>）：Zio 写在 <code class="inline">agent.zio</code> 里——模型走 <code class="inline">host/http-request</code> 打 OpenAI 兼容端点；候选走 <code class="inline">host/process-start</code> 进 jail，以 <code class="inline">zio --emit-framed</code> 的单帧 JSON 回报。</li>
-          <li><b>Rust 路径</b>（<code class="inline">grove-app</code> 的 AgentHost）：绑定由 Rust 装配——模型走 Loom session（测试用脚本化 ModelHost），候选走 <code class="inline">grove::execution</code> 沙箱。合同测试不联网，回放证明宿主行为，模型能力由真实调用单独验收。</li>
-        </ul>
-        <p>
-          两个绑定都返回 keyword 键的 map——Zio 的 map 约定。用 string 键去读只会拿到默认值，
-          这正是一轮失败被误读成"没有错误"的原因，所以代码注释里专门写了这一条。
-        </p>
-        <table class="map-table">
-          <tr><th>绑定</th><th>入参</th><th>返回</th></tr>
-          <tr><td>complete</td><td>(task feedback)</td><td>{:source "…"} 有程序；{:text "…"} 只是话</td></tr>
-          <tr><td>execute</td><td>(source)</td><td>{:status "completed"|"failed" :error :output}</td></tr>
-        </table>
-        <p>
-          <b>没有 :source 的回复不是程序。</b>把它当程序执行，等于把空串递给沙箱、再报告沙箱对空串的看法——读起来像在评价模型写的代码，其实模型什么都没写。
-        </p>
-      </div>
-      <div class="card code-panel">
-        <div class="code-file"><span>libs/loom/candidate.zio — 参考绑定</span><span>宿主绑定</span></div>
-        <div class="code-block"><pre class="code"><span class="cm">;; 模型一侧:OpenAI 兼容端点,启动器的网络授权。</span>
+      <div class="lesson">
+        <div class="prose">
+          <h4>两个宿主绑定：合同先行</h4>
+          <p>
+            <code class="inline">complete</code> 与 <code class="inline">execute</code>（行为表项，由
+            <code class="inline">make-complete-binding</code> / <code class="inline">make-execute-binding</code> 组装）
+            是循环不能自己完成的两件事。它们按<b>调用方</b>装配：
+          </p>
+          <ul>
+            <li><b>启动器路径</b>（<code class="inline">tools/groiz run</code>）：Zio 写在 <code class="inline">agent.zio</code> 里——模型走 <code class="inline">host/http-request</code> 打 OpenAI 兼容端点；候选走 <code class="inline">host/process-start</code> 进 jail，以 <code class="inline">zio --emit-framed</code> 的单帧 JSON 回报。</li>
+            <li><b>Rust 路径</b>（<code class="inline">grove-app</code> 的 AgentHost）：绑定由 Rust 装配——模型走 Loom session（测试用脚本化 ModelHost），候选走 <code class="inline">grove::execution</code> 沙箱。合同测试不联网，回放证明宿主行为，模型能力由真实调用单独验收。</li>
+          </ul>
+          <p>
+            两个绑定都返回 keyword 键的 map——Zio 的 map 约定。用 string 键去读只会拿到默认值，
+            这正是一轮失败被误读成"没有错误"的原因，所以代码注释里专门写了这一条。
+          </p>
+          <table class="map-table">
+            <tr><th>绑定</th><th>入参</th><th>返回</th></tr>
+            <tr><td>complete</td><td>(task feedback)</td><td>{:source "…"} 有程序；{:text "…"} 只是话</td></tr>
+            <tr><td>execute</td><td>(source)</td><td>{:status "completed"|"failed" :error :output}</td></tr>
+          </table>
+          <p>
+            <b>没有 :source 的回复不是程序。</b>把它当程序执行，等于把空串递给沙箱、再报告沙箱对空串的看法——读起来像在评价模型写的代码，其实模型什么都没写。
+          </p>
+        </div>
+        <div class="card code-panel">
+          <div class="code-file"><span>libs/loom/candidate.zio — 参考绑定</span><span>宿主绑定</span></div>
+          <div class="code-block"><pre class="code"><span class="cm">;; 模型一侧:OpenAI 兼容端点,启动器的网络授权。</span>
 <span class="cm">;; make-complete-binding 返回闭包,闭包内经 host/getenv</span>
 <span class="cm">;; 读 key——名字进得了行为表,值进不了。</span>
 (<span class="kw">defn</span> <span class="fn">make-complete-binding</span> [config]
@@ -665,28 +810,28 @@
           <span class="cm">;; macOS 没有 Linux namespaces：诚实拒绝，</span>
           <span class="cm">;; 这个失败本身作为证据进入下一轮。</span>
           {:status <span class="st">"failed"</span> :error (<span class="kw">str</span> *error*) :output <span class="st">""</span>})))))</pre></div>
+        </div>
       </div>
-    </div>
 
-    <div class="lesson">
-      <div class="prose">
-        <h3>执行合同：一帧 JSON，一次诚实</h3>
-        <p>
-          候选进程的 stdout 只允许出现一帧 JSON——这是 <code class="inline">--emit-framed</code> 的信封，
-          候选自己的打印被捕获进 <code class="inline">output</code> 字段，帧流保持可解析。
-          status 由宿主根据真实结果计算：refused（拒绝执行）和 failed（跑失败）是两个不同的事实，
-          程序没有权利给自己命名一个体面的状态。
-        </p>
-        <p>
-          隔离不是可选的礼貌：候选进程起在 user/mount/pid namespace 的 jail 里，
-          <code class="inline">env -i</code> 清空环境、scratch 是唯一可写点、其余只读挂载。
-          没有 namespace 的宿主（比如 macOS）会以 <code class="inline">capability-denied</code> 拒绝——
-          <b>诚实的拒绝比假装成功的模拟更有价值</b>，因为它把边界缺口变成了一等证据。
-        </p>
-      </div>
-      <div class="card code-panel">
-        <div class="code-file"><span>真实执行的帧（2026-10-31 实跑记录）</span><span>NDJSON</span></div>
-        <div class="code-block"><pre class="code"><span class="cm">// 一轮候选执行在 stdout 上留下的全部东西：</span>
+      <div class="lesson">
+        <div class="prose">
+          <h4>执行合同：一帧 JSON，一次诚实</h4>
+          <p>
+            候选进程的 stdout 只允许出现一帧 JSON——这是 <code class="inline">--emit-framed</code> 的信封，
+            候选自己的打印被捕获进 <code class="inline">output</code> 字段，帧流保持可解析。
+            status 由宿主根据真实结果计算：refused（拒绝执行）和 failed（跑失败）是两个不同的事实，
+            程序没有权利给自己命名一个体面的状态。
+          </p>
+          <p>
+            隔离不是可选的礼貌：候选进程起在 user/mount/pid namespace 的 jail 里，
+            <code class="inline">env -i</code> 清空环境、scratch 是唯一可写点、其余只读挂载。
+            没有 namespace 的宿主（比如 macOS）会以 <code class="inline">capability-denied</code> 拒绝——
+            <b>诚实的拒绝比假装成功的模拟更有价值</b>，因为它把边界缺口变成了一等证据。
+          </p>
+        </div>
+        <div class="card code-panel">
+          <div class="code-file"><span>真实执行的帧（2026-10-31 实跑记录）</span><span>NDJSON</span></div>
+          <div class="code-block"><pre class="code"><span class="cm">// 一轮候选执行在 stdout 上留下的全部东西：</span>
 {"error":"",
  "output":"noisy\n",          <span class="cm">// 候选自己 println 的内容</span>
  "output-truncated":false,
@@ -700,29 +845,29 @@
 {:status "failed"
  :error "capability-denied: process isolation requires Linux namespaces"
  :turns 1}</pre></div>
+        </div>
       </div>
-    </div>
 
-    <div class="lesson">
-      <div class="prose">
-        <h3>为什么循环本身要是一门同像性语言的程序</h3>
-        <p>
-          Groiz 的论点：自学习系统的升级依据应该来自<b>独立评价与人工审查</b>，而不是模型对自己行为的文字解释。
-          前提是——agent 的显式逻辑必须是<b>真实执行的程序</b>，可以被读取、比较和改写。
-        </p>
-        <p>
-          同像性（代码即数据）提供的是这一步：<code class="inline">agent-run</code> 不是藏在框架里的隐式控制流，
-          它就是仓库里的一个 <code class="inline">(defn …)</code>。审查者可以 diff 两个版本的循环、
-          提议改写并自动实验——<b>在授权范围内</b>。可学习区、受治理区、受保护区在架构里是三个不可合并的区域；
-          正式发布默认人工批准，人工同意也不能绕过硬门槛。
-        </p>
-        <p>
-          换句话说：这一页教你的循环，本身就是 Groiz 第一个<b>可被自己演化的对象</b>。
-        </p>
-      </div>
-      <div class="card code-panel">
-        <div class="code-file"><span>main.zio — 循环的入口合同</span><span>Zio</span></div>
-        <div class="code-block"><pre class="code"><span class="cm">;; The bounded-agent entry the generic runner calls. Grove owns the</span>
+      <div class="lesson">
+        <div class="prose">
+          <h4>为什么循环本身要是一门同像性语言的程序</h4>
+          <p>
+            Groiz 的论点：自学习系统的升级依据应该来自<b>独立评价与人工审查</b>，而不是模型对自己行为的文字解释。
+            前提是——agent 的显式逻辑必须是<b>真实执行的程序</b>，可以被读取、比较和改写。
+          </p>
+          <p>
+            同像性（代码即数据）提供的是这一步：<code class="inline">agent-run</code> 不是藏在框架里的隐式控制流，
+            它就是仓库里的一个 <code class="inline">(defn …)</code>。审查者可以 diff 两个版本的循环、
+            提议改写并自动实验——<b>在授权范围内</b>。可学习区、受治理区、受保护区在架构里是三个不可合并的区域；
+            正式发布默认人工批准，人工同意也不能绕过硬门槛。
+          </p>
+          <p>
+            换句话说：这一课教你的循环，本身就是 Groiz 第一个<b>可被自己演化的对象</b>。
+          </p>
+        </div>
+        <div class="card code-panel">
+          <div class="code-file"><span>main.zio — 循环的入口合同</span><span>Zio</span></div>
+          <div class="code-block"><pre class="code"><span class="cm">;; The bounded-agent entry the generic runner calls. Grove owns the</span>
 <span class="cm">;; dispatch; Loom supplies the reusable loop, and the budget cap is a</span>
 <span class="cm">;; keyword the host meters, not a number the candidate chose.</span>
 (<span class="kw">defn</span> <span class="fn">agent-entry</span> [task budget]
@@ -740,75 +885,87 @@
     (<span class="kw">let</span> [provider (agent--load-provider (get opts :provider-config <span class="st">""</span>))]
       (views--render-run-report
         (agent--run provider task max-turns launcher)))))</pre></div>
+        </div>
       </div>
+
+      <section class="block" id="playground">
+        <h3>把循环走一遍（脚本化演示）</h3>
+        <p class="sub">
+          点"下一步"逐阶段推进，或"运行到底"看完整回合。每一阶段都会在右侧代码面板
+          <b>高亮真正实现它的那一行</b>——不是伪代码，是仓库里正在运行的源码。
+          <b>模型由页面脚本模拟</b>（第 1 轮故意有错、第 2 轮修订），与仓库合同测试的做法一致——它演示的是宿主与循环的行为，不是模型能力；
+          真实运行请去 <a href="#/run">Run</a>。
+        </p>
+        <div class="pg">
+          <div class="card">
+            <div class="head"><span><span class="dot"></span>运行面板</span><span>turn: <span id="pgTurn">0</span></span></div>
+            <div class="body">
+              <div class="pg-state">
+                <span>status: <b id="pgStatus">idle</b></span>
+                <span>max-turns: <b>3</b></span>
+                <span class="budget-bar"><div class="budget-track"><div class="budget-fill" id="pgBudget"></div></div></span>
+              </div>
+              <div class="pg-controls">
+                <button class="main" id="btnStep">下一步 →</button>
+                <button id="btnRun">运行到底</button>
+                <button id="btnReset">重置</button>
+              </div>
+              <div class="stage-feed" id="pgFeed">
+                <div class="stage"><div class="s-head"><span>等待开始</span><span class="tag">idle</span></div>
+                  <div class="s-body" style="color:var(--muted)">点击「下一步」开始。任务：<b style="color:var(--text)">“计算 21 的两倍并打印结果”</b>，预算 3 turns。</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="card code-panel">
+            <div class="head"><span><span class="dot" style="background:var(--accent-2)"></span>实现源码</span><span id="codeWhere">libs/loom/agent.zio</span></div>
+            <div class="body">
+              <div class="code-file"><span id="codeFile">libs/loom/agent.zio — agent-run</span><span>Zio</span></div>
+              <div class="code-block" id="codeBlock"></div>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
   </div>
 </section>
 
-<section id="status">
+<!-- ═══ 状态 ═══ -->
+<section class="view" data-view="status" id="view-status" hidden>
   <div class="wrap">
-    <h2><span class="idx">03</span>运行状态</h2>
-    <p class="section-sub">
-      这一节没有模拟:卡片直接请求运行面的 <b>/api/health</b>。
-      loom 控制台(同一个 agent 框架的线上实例)与 grove 控制面各自报告自己的真实状态;
-      教学端口(04 节的数据源)是否开启,是启动器是否授予 <code>LOOM_TEACH_MODULES</code> 决定的。
-    </p>
-    <div class="status-grid">
-      <div class="status-card">
-        <h3><span class="dot" id="dLoom"></span>loom 控制台 <span style="color:var(--muted);font-weight:400;font-size:11px">loom.lszio.space</span></h3>
-        <div class="sub">agent 框架线上实例 — 预算会话 / 教学端口</div>
-        <div class="row"><span>status</span><b id="loomStatus">…</b></div>
-        <div class="row"><span>教学端口 (trace)</span><b id="loomTeach">…</b></div>
-        <div class="row"><span>trace cursor</span><b id="loomCursor">…</b></div>
-        <div class="row"><span>查看</span><b><a href="https://loom.lszio.space" target="_blank" rel="noopener" style="color:var(--accent)">打开控制台 ↗</a></b></div>
-      </div>
-      <div class="status-card">
-        <h3><span class="dot" id="dGrove"></span>grove 控制面 <span style="color:var(--muted);font-weight:400;font-size:11px">api.groiz.lszio.space</span></h3>
-        <div class="sub">学习运行的平台面 — 运行台账 / 事件日志</div>
-        <div class="row"><span>status</span><b id="groveStatus">…</b></div>
-        <div class="row"><span>schema</span><b id="groveSchema">…</b></div>
-        <div class="row"><span>owner_epoch</span><b id="groveEpoch">…</b></div>
-        <div class="row"><span>scheduler</span><b id="groveSched">…</b></div>
-        <div class="row"><span>查看</span><b><a href="https://api.groiz.lszio.space/api/health" target="_blank" rel="noopener" style="color:var(--accent)">health ↗</a></b></div>
-      </div>
-      <div class="status-card">
-        <h3><span class="dot" id="dRuns"></span>运行台账(可选)</h3>
-        <div class="sub">/api/runs · /api/events 需要 reader 角色 token — 公开页面不内置凭据,愿意带的访客可自行填入(只存本机)。</div>
-        <input id="groveToken" placeholder="GROIZ_TOKEN_READER…(可选)" autocomplete="off">
-        <div class="hint" id="runsView">填入 token 后这里显示运行台账。不带 token 时:认证被拒绝是权限模型在工作,不是故障。</div>
-      </div>
+    <div class="view-head">
+      <h2><span class="idx">04</span>状态 — 实体健康</h2>
+      <p>
+        这一节没有模拟:卡片直接请求运行面的 <b>/api/health</b>。
+        loom 控制台(同一个 agent 框架的线上实例)与 grove 控制面各自报告自己的真实状态;
+        教学端口(Observe 的数据源)是否开启,是启动器是否授予 <code>LOOM_TEACH_MODULES</code> 决定的。
+      </p>
     </div>
-  </div>
-</section>
-
-<section id="live">
-  <div class="wrap">
-    <h2><span class="idx">04</span>函数执行实况</h2>
-    <p class="section-sub">
-      agent 循环自己在被观测:zio 语言的<b>教学观测器</b>(第二个观测端口,显式 opt-in)
-      在循环每次调用处携带实参(尺寸/深度上限,超限截断)上报。左列是被追踪的真实源码
-      <code>libs/loom/agent.zio</code>,高亮当前 form;右列是调用栈与阶段带。
-      白名单只监听 agent.zio —— 凭据流经的模块不在端口内。REPLAY 是一次真实离线运行
-      (jail 诚实拒绝,两轮修订后耗尽 turn 上限);LIVE 轮询 loom 控制台的最新运行。
-    </p>
-    <div class="live-shell">
-      <div class="live-bar">
-        <div class="mode">
-          <button id="mReplay" class="on">REPLAY</button>
-          <button id="mLive">LIVE · loom.lszio.space</button>
+    <div class="view-body">
+      <div class="status-grid">
+        <div class="status-card">
+          <h3><span class="dot" id="dLoom"></span>loom 控制台 <span style="color:var(--muted);font-weight:400;font-size:11px">loom.lszio.space</span></h3>
+          <div class="sub">agent 框架线上实例 — 预算会话 / 教学端口</div>
+          <div class="row"><span>status</span><b id="loomStatus">…</b></div>
+          <div class="row"><span>教学端口 (trace)</span><b id="loomTeach">…</b></div>
+          <div class="row"><span>trace cursor</span><b id="loomCursor">…</b></div>
+          <div class="row"><span>查看</span><b><a href="https://loom.lszio.space" target="_blank" rel="noopener" style="color:var(--accent)">打开控制台 ↗</a></b></div>
         </div>
-        <span class="stat" id="liveStat"></span>
-      </div>
-      <div class="live-main">
-        <div class="live-src" id="liveSrc"></div>
-        <div class="live-right">
-          <div class="live-phases" id="livePhases"></div>
-          <div class="live-timeline" id="liveTimeline"></div>
-          <div class="live-stack" id="liveStack"></div>
+        <div class="status-card">
+          <h3><span class="dot" id="dGrove"></span>grove 控制面 <span style="color:var(--muted);font-weight:400;font-size:11px">api.groiz.lszio.space</span></h3>
+          <div class="sub">学习运行的平台面 — 运行台账 / 事件日志</div>
+          <div class="row"><span>status</span><b id="groveStatus">…</b></div>
+          <div class="row"><span>schema</span><b id="groveSchema">…</b></div>
+          <div class="row"><span>owner_epoch</span><b id="groveEpoch">…</b></div>
+          <div class="row"><span>scheduler</span><b id="groveSched">…</b></div>
+          <div class="row"><span>查看</span><b><a href="https://api.groiz.lszio.space/api/health" target="_blank" rel="noopener" style="color:var(--accent)">health ↗</a></b></div>
         </div>
-      </div>
-      <div class="live-note" id="liveNote">
-        trace 合同:证据 trace(无值)与服务 trace(带值、有上限)是两个端口,互不污染。点击阶段带/时间轴/调用栈任意事件可回看那一行。
+        <div class="status-card">
+          <h3><span class="dot" id="dRuns"></span>运行台账(可选)</h3>
+          <div class="sub">/api/runs · /api/events 需要 reader 角色 token — 公开页面不内置凭据,愿意带的访客可自行填入(只存本机)。</div>
+          <input id="groveToken" placeholder="GROIZ_TOKEN_READER…(可选)" autocomplete="off">
+          <div class="hint" id="runsView">填入 token 后这里显示运行台账。不带 token 时:认证被拒绝是权限模型在工作,不是故障。</div>
+        </div>
       </div>
     </div>
   </div>
@@ -821,24 +978,399 @@
       <a href="https://github.com/lszio/zio" target="_blank" rel="noopener">lszio/zio（语言与 Loom）→</a>
     </div>
     <div class="honest">
-      <b>诚实声明</b>：本页 Playground 的"模型"由页面脚本模拟（第 1 轮故意有错、第 2 轮修订），
-      与仓库合同测试的做法一致——回放证明的是<b>宿主与循环的行为</b>，不是模型能力。
-      页面展示的源码摘自仓库当前版本；真实端到端运行（真实模型 + jail 隔离执行）在 Linux 部署上验收，
-      macOS 本地开发会以 <code>capability-denied</code> 诚实拒绝候选执行。
+      <b>诚实声明</b>：Learn 里的 Playground 是<b>脚本化演示</b>（模型由页面脚本扮演，与仓库合同测试的做法一致）——它证明的是宿主与循环的行为，不是模型能力；
+      Observe 的 REPLAY 是一次真实离线运行的 trace,LIVE 与 Run 面板读取的是 loom 控制台的<b>真实</b>运行。
+      展示的源码摘自仓库当前版本；真实端到端运行（真实模型 + jail 隔离执行）在 Linux 部署上验收，
+      容器无 namespace 时以 <code>capability-denied</code> 诚实拒绝候选执行。
     </div>
     <div class="fine">Groiz 是独立应用，以 Zio 为语言基础、以 Loom 为 harness。Zio 保持通用语言身份；学习目标、发布权限与实验数据不进入语言核心。</div>
   </div>
 </footer>
 
 <script>
-/* ── Playground: 与仓库合同测试一致的状态机 ─────────────────
-   阶段模拟 agent-run 的真实回合：prompt → 模型 → 提取 → 执行 → 判定。
-   模型脚本与 tools 里对 mock provider 的实测一致。 */
+/* ═══ 视图路由:hash → .view,导航 aria-current 同步 ═══ */
+const VIEWS = ['overview', 'observe', 'run', 'learn', 'status'];
+function route() {
+  const v = (location.hash || '#/overview').replace(/^#\//, '');
+  const view = VIEWS.includes(v) ? v : 'overview';
+  document.querySelectorAll('.view').forEach(s => { s.hidden = s.dataset.view !== view; });
+  document.querySelectorAll('.topnav a.link').forEach(a => {
+    if (a.getAttribute('href') === '#/' + view) a.setAttribute('aria-current', 'page');
+    else a.removeAttribute('aria-current');
+  });
+}
+window.addEventListener('hashchange', route);
+route();
 
-const CODE = {
-  agentRun: document.querySelector('.lesson:nth-of-type(1) pre').innerHTML,
-};
+/* ═══ Observe:REPLAY/LIVE 数据流 + 回合分组时间线 + Inspector ═══ */
+const PHASES = [
+  ['complete', 'ask', 'p-ask', 't-ask'],
+  ['extract', 'extract', 'p-extract', 't-extract'],
+  ['execute', 'execute', 'p-exec', 't-exec'],
+  ['candidate?', 'check', 'p-check', 't-check'],
+  ['revise', 'revise', 'p-revise', 't-revise'],
+];
+function phaseOf(name) { for (const p of PHASES) if (p[0] === name) return p; return null; }
+const REPLAY = {"cursor":2847,"dropped":0,"events":[{"args":["{complete #<function> execute #<function> max-turns 2}"],"col":17,"depth":4,"kind":"call","line":80,"module":"agent.zio","name":"map?","seq":2581,"tail":false,"truncated":false},{"args":["{complete #<function> execute #<function> max-turns 2}","complete","nil"],"col":20,"depth":4,"kind":"call","line":81,"module":"agent.zio","name":"get","seq":2582,"tail":false,"truncated":false},{"args":["#<function>"],"col":25,"depth":4,"kind":"call","line":82,"module":"agent.zio","name":"fn?","seq":2583,"tail":false,"truncated":false},{"args":["{complete #<function> execute #<function> max-turns 2}","execute","nil"],"col":19,"depth":4,"kind":"call","line":84,"module":"agent.zio","name":"get","seq":2584,"tail":false,"truncated":false},{"args":["#<function>"],"col":24,"depth":4,"kind":"call","line":85,"module":"agent.zio","name":"fn?","seq":2585,"tail":false,"truncated":false},{"args":["{complete #<function> execute #<function> max-turns 2}","max-turns","3"],"col":21,"depth":4,"kind":"call","line":87,"module":"agent.zio","name":"get","seq":2586,"tail":false,"truncated":false},{"args":["{complete #<function> execute #<function> max-turns 2}","extract","#<function>"],"col":19,"depth":4,"kind":"call","line":88,"module":"agent.zio","name":"get","seq":2587,"tail":false,"truncated":false},{"args":["{complete #<function> execute #<function> max-turns 2}","revise","#<function>"],"col":18,"depth":4,"kind":"call","line":89,"module":"agent.zio","name":"get","seq":2588,"tail":false,"truncated":false},{"args":["{complete #<function> execute #<function> max-turns 2}","candidate?","#<function>"],"col":22,"depth":4,"kind":"call","line":90,"module":"agent.zio","name":"get","seq":2589,"tail":false,"truncated":false},{"args":["{complete #<function> execute #<function> max-turns 2}","price","nil"],"col":17,"depth":4,"kind":"call","line":91,"module":"agent.zio","name":"get","seq":2590,"tail":false,"truncated":false},{"args":["0","2"],"col":12,"depth":4,"kind":"call","line":93,"module":"agent.zio","name":">=","seq":2591,"tail":false,"truncated":false},{"args":["\"print the sum 1..10\"","nil"],"col":23,"depth":4,"kind":"call","line":97,"module":"agent.zio","name":"complete","seq":2592,"tail":false,"truncated":false},{"args":["{source \"(println 42)\" text \"{\"source\": \"(println 42)\"}\"}"],"col":24,"depth":4,"kind":"call","line":98,"module":"agent.zio","name":"extract","seq":2681,"tail":false,"truncated":false},{"args":["{source \"(println 42)\" text \"{\"source\": \"(println 42)\"}\"}","source","\"\""],"col":18,"depth":5,"kind":"call","line":47,"module":"agent.zio","name":"get","seq":2682,"tail":false,"truncated":false},{"args":["\"(println 42)\"","\"\""],"col":10,"depth":5,"kind":"call","line":48,"module":"agent.zio","name":"=","seq":2683,"tail":false,"truncated":false},{"args":["\"(println 42)\""],"col":29,"depth":4,"kind":"call","line":99,"module":"agent.zio","name":"nil?","seq":2684,"tail":false,"truncated":false},{"args":["\"(println 42)\""],"col":27,"depth":4,"kind":"call","line":102,"module":"agent.zio","name":"execute","seq":2685,"tail":false,"truncated":false},{"args":["nil"],"col":30,"depth":4,"kind":"call","line":103,"module":"agent.zio","name":"nil?","seq":2702,"tail":false,"truncated":false},{"args":["{error \"capability-denied: process isolation requires Linux namespaces at line 265, col 21\" output \"\" status \"failed\"}"],"col":16,"depth":4,"kind":"call","line":104,"module":"agent.zio","name":"candidate?","seq":2703,"tail":false,"truncated":false},{"args":["{error \"capability-denied: process isolation requires Linux namespaces at line 265, col 21\" output \"\" status \"failed\"}","status","\"failed\""],"col":42,"depth":5,"kind":"call","line":65,"module":"agent.zio","name":"get","seq":2704,"tail":false,"truncated":false},{"args":["\"failed\"","\"completed\""],"col":39,"depth":5,"kind":"call","line":65,"module":"agent.zio","name":"=","seq":2705,"tail":true,"truncated":false},{"args":["0","1"],"col":21,"depth":4,"kind":"call","line":108,"module":"agent.zio","name":"+","seq":2706,"tail":false,"truncated":false},{"args":["{error \"capability-denied: process isolation requires Linux namespaces at line 265, col 21\" output \"\" status \"failed\"}"],"col":32,"depth":4,"kind":"call","line":108,"module":"agent.zio","name":"revise","seq":2707,"tail":false,"truncated":false},{"args":["{error \"capability-denied: process isolation requires Linux namespaces at line 265, col 21\" output \"\" status \"failed\"}","error","\"no error detail was reported\""],"col":12,"depth":5,"kind":"call","line":59,"module":"agent.zio","name":"get","seq":2708,"tail":false,"truncated":false},{"args":["{error \"capability-denied: process isolation requires Linux namespaces at line 265, col 21\" output \"\" status \"failed\"}","turns","0"],"col":12,"depth":5,"kind":"call","line":60,"module":"agent.zio","name":"get","seq":2709,"tail":false,"truncated":false},{"args":["{error \"capability-denied: process isolation requires Linux namespaces at line 265, col 21\" output \"\" status \"failed\"}","status","\"failed\""],"col":13,"depth":5,"kind":"call","line":58,"module":"agent.zio","name":"get","seq":2710,"tail":false,"truncated":false},{"args":["1","2"],"col":12,"depth":4,"kind":"call","line":93,"module":"agent.zio","name":">=","seq":2711,"tail":false,"truncated":false},{"args":["\"print the sum 1..10\"","{error \"capability-denied: process isolation requires Linux namespaces at line 265, col 21\" status \"failed\" turns 0}"],"col":23,"depth":4,"kind":"call","line":97,"module":"agent.zio","name":"complete","seq":2712,"tail":false,"truncated":false},{"args":["{source \"(println 42)\" text \"{\"source\": \"(println 42)\"}\"}"],"col":24,"depth":4,"kind":"call","line":98,"module":"agent.zio","name":"extract","seq":2817,"tail":false,"truncated":false},{"args":["{source \"(println 42)\" text \"{\"source\": \"(println 42)\"}\"}","source","\"\""],"col":18,"depth":5,"kind":"call","line":47,"module":"agent.zio","name":"get","seq":2818,"tail":false,"truncated":false},{"args":["\"(println 42)\"","\"\""],"col":10,"depth":5,"kind":"call","line":48,"module":"agent.zio","name":"=","seq":2819,"tail":false,"truncated":false},{"args":["\"(println 42)\""],"col":29,"depth":4,"kind":"call","line":99,"module":"agent.zio","name":"nil?","seq":2820,"tail":false,"truncated":false},{"args":["\"(println 42)\""],"col":27,"depth":4,"kind":"call","line":102,"module":"agent.zio","name":"execute","seq":2821,"tail":false,"truncated":false},{"args":["nil"],"col":30,"depth":4,"kind":"call","line":103,"module":"agent.zio","name":"nil?","seq":2838,"tail":false,"truncated":false},{"args":["{error \"capability-denied: process isolation requires Linux namespaces at line 265, col 21\" output \"\" status \"failed\"}"],"col":16,"depth":4,"kind":"call","line":104,"module":"agent.zio","name":"candidate?","seq":2839,"tail":false,"truncated":false},{"args":["{error \"capability-denied: process isolation requires Linux namespaces at line 265, col 21\" output \"\" status \"failed\"}","status","\"failed\""],"col":42,"depth":5,"kind":"call","line":65,"module":"agent.zio","name":"get","seq":2840,"tail":false,"truncated":false},{"args":["\"failed\"","\"completed\""],"col":39,"depth":5,"kind":"call","line":65,"module":"agent.zio","name":"=","seq":2841,"tail":true,"truncated":false},{"args":["1","1"],"col":21,"depth":4,"kind":"call","line":108,"module":"agent.zio","name":"+","seq":2842,"tail":false,"truncated":false},{"args":["{error \"capability-denied: process isolation requires Linux namespaces at line 265, col 21\" output \"\" status \"failed\"}"],"col":32,"depth":4,"kind":"call","line":108,"module":"agent.zio","name":"revise","seq":2843,"tail":false,"truncated":false},{"args":["{error \"capability-denied: process isolation requires Linux namespaces at line 265, col 21\" output \"\" status \"failed\"}","error","\"no error detail was reported\""],"col":12,"depth":5,"kind":"call","line":59,"module":"agent.zio","name":"get","seq":2844,"tail":false,"truncated":false},{"args":["{error \"capability-denied: process isolation requires Linux namespaces at line 265, col 21\" output \"\" status \"failed\"}","turns","0"],"col":12,"depth":5,"kind":"call","line":60,"module":"agent.zio","name":"get","seq":2845,"tail":false,"truncated":false},{"args":["{error \"capability-denied: process isolation requires Linux namespaces at line 265, col 21\" output \"\" status \"failed\"}","status","\"failed\""],"col":13,"depth":5,"kind":"call","line":58,"module":"agent.zio","name":"get","seq":2846,"tail":false,"truncated":false},{"args":["2","2"],"col":12,"depth":4,"kind":"call","line":93,"module":"agent.zio","name":">=","seq":2847,"tail":false,"truncated":false}],"task":"print the sum 1..10","result":{"error":null,"output":null,"status":"exhausted","turns":2}};
+const SOURCES = { 'agent.zio': ";; ── zio.agent — the agent's own decision logic, in Zio ─────────────\n;;\n;; This module decides — route, validate, revise, stop — and the things\n;; it cannot do itself arrive as a BEHAVIOR TABLE: one per-session map\n;; of decision points, passed in as a parameter (spec §3 L1). No free\n;; variables, no `set!`-installed globals: the loop's behavior is\n;; readable from its argument, and swapping a decision point happens at\n;; a turn boundary by passing a different map.\n;;\n;;   :complete   (fn [task feedback]) → reply map. Required. How to ask\n;;               the model; reference: candidate/make-complete-binding.\n;;   :execute    (fn [source]) → outcome map with :status. Required.\n;;               How to run a candidate; reference:\n;;               candidate/make-execute-binding.\n;;   :extract    (fn [reply]) → source or nil. What counts as a program\n;;               in a reply. Default: source-of.\n;;   :revise     (fn [outcome]) → the feedback map the next turn sees.\n;;               Default: feedback-of.\n;;   :candidate? (fn [outcome]) → does this outcome end the loop as a\n;;               candidate. Default: an outcome whose :status is\n;;               \"completed\".\n;;   :price      (fn [turn reply outcome]) → metering hook, called once\n;;               per turn after execution. A host wires its budget\n;;               ledger here; the loop itself never prices.\n;;   :max-turns  the turn ceiling. The host also meters calls\n;;               independently — a program cannot grant itself more\n;;               turns than the grant allows.\n;;\n;; The split is the point. This file decides *when* to ask the model\n;; and *what* to do with the answer; the behavior decides what a model\n;; call costs, what a program is allowed to reach, and how long it may\n;; run. Required keys are refused, not defaulted: a behavior that\n;; cannot say how to ask or how to run is not a behavior.\n\n;; A reply with no source is not a program. Treating it as one would\n;; hand the host an empty string and report whatever the sandbox said\n;; about it, which reads like a result about the model's code when the\n;; model never wrote any.\n;;\n;; Both reference bindings return keyword-keyed maps — that is the Zio\n;; map convention, and reading them with string keys returns the\n;; default every time, which is how a failed turn ends up looking like\n;; it carried no error at all.\n;; doc: (source-of reply) — extracts the model's program source string from a\n;; doc: reply map, or nil when the reply carries no :source. Reads keyword keys only.\n(defn source-of [reply]\n  (let* [source (get reply :source \"\")]\n    (if (= source \"\")\n      nil\n      source)))\n\n;; The feedback the next turn sees. The error is carried whole, not\n;; summarized: a revision that is shown a paraphrase of why it failed\n;; is a revision guessing.\n;; doc: (feedback-of outcome) — builds the feedback map the next turn sees from an\n;; doc: execute outcome: {:status :error :turns}. The error text is carried whole.\n(defn feedback-of [outcome]\n  {:status (get outcome :status \"failed\")\n   :error (get outcome :error \"no error detail was reported\")\n   :turns (get outcome :turns 0)})\n\n;; The default \"what is a candidate\" decision: an execution outcome\n;; whose status is \"completed\". A behavior overrides this to widen or\n;; narrow what ends the loop.\n(def agent--completed? (fn [outcome] (= (get outcome :status \"failed\") \"completed\")))\n\n;; Run the agent loop.\n;;\n;; `max-turns` in the behavior is the ceiling the host passed in from\n;; the grant, not a number this function decided: the call count is\n;; also metered there, so a program that ignored this argument would\n;; still be stopped.\n;; doc: (agent-run task behavior) — the agent loop over a behavior table\n;; doc: {:complete :execute :extract :revise :candidate? :price :max-turns}.\n;; doc: Returns {:status \"candidate\" :turns :execution} on success or\n;; doc: {:status \"exhausted\" :turns :last} when the ceiling is hit.\n;; doc: :complete and :execute are required; the loop refuses a behavior\n;; doc: that cannot ask or cannot run.\n(defn agent-run [task behavior]\n  (let* [b (if (map? behavior) behavior {})\n         complete (get b :complete nil)\n         _complete (if (fn? complete) true\n                     (error \"loom: agent behavior requires :complete (fn [task feedback])\"))\n         execute (get b :execute nil)\n         _execute (if (fn? execute) true\n                    (error \"loom: agent behavior requires :execute (fn [source])\"))\n         max-turns (get b :max-turns 3)\n         extract (get b :extract source-of)\n         revise (get b :revise feedback-of)\n         candidate? (get b :candidate? agent--completed?)\n         price (get b :price nil)]\n    (loop [turn 0 feedback nil]\n      (if (>= turn max-turns)\n        {:status \"exhausted\"\n         :turns turn\n         :last feedback}\n        (let* [reply (complete task feedback)\n               source (extract reply)\n               outcome (if (nil? source)\n                         {:status \"failed\"\n                          :error \"the model returned no source to execute\"}\n                         (execute source))\n               _metered (if (nil? price) true (price turn reply outcome))]\n          (if (candidate? outcome)\n            {:status \"candidate\"\n             :turns (+ turn 1)\n             :execution outcome}\n            (recur (+ turn 1) (revise outcome))))))))\n\n\n(export agent-run source-of feedback-of)\n" };
+const LIVE_BASE = 'https://loom.lszio.space';
 
+let mode = 'replay';
+let events = [];
+let cursor = null, dropped = 0;
+let selectedSeq = null;
+let liveTimer = null;
+
+function latestCall() {
+  for (let i = events.length - 1; i >= 0; i--) if (events[i].kind === 'call') return events[i];
+  return null;
+}
+
+/* 回合分组:一个 turn 从 `(if (>= turn max-turns)` 的判定调用开始。
+   这是展示逻辑,不是循环逻辑——分组依据来自教学端口的真实事件。 */
+function turnGroups(evs) {
+  const groups = [];
+  let cur = null;
+  for (const ev of evs) {
+    const isTurnCheck = ev.kind === 'call' && ev.name === '>=' && ev.line === 93;
+    if (isTurnCheck || !cur) {
+      cur = { n: groups.length + 1, start: ev, events: [] };
+      groups.push(cur);
+    }
+    cur.events.push(ev);
+  }
+  return groups;
+}
+
+function selectEvent(ev) {
+  selectedSeq = ev ? ev.seq : null;
+  renderInspector(ev);
+  document.querySelectorAll('#liveTl .ev, #runTl .ev').forEach(el => {
+    el.classList.toggle('sel', ev && Number(el.dataset.seq) === selectedSeq);
+  });
+}
+
+/* 时间线(turn 分组)渲染到任意容器 */
+function renderTurnTimeline(container, evs, opts) {
+  container.textContent = '';
+  if (!evs.length) {
+    const d = document.createElement('div');
+    d.className = 'empty';
+    d.textContent = (opts && opts.empty) || '(没有事件)';
+    container.appendChild(d);
+    return;
+  }
+  const follow = opts && opts.follow;
+  const groups = turnGroups(evs);
+  for (const g of groups) {
+    const turn = document.createElement('div');
+    turn.className = 'turn';
+    const head = document.createElement('div');
+    head.className = 'turn-head';
+    const label = document.createElement('span');
+    label.textContent = `TURN ${g.n}`;
+    const check = document.createElement('span');
+    const args = (g.start.args || []).join(' ');
+    check.textContent = `(>= ${args}) → ${args.endsWith('false') ? '继续' : args.endsWith('true') ? '耗尽' : ''}`;
+    head.appendChild(label); head.appendChild(check);
+    turn.appendChild(head);
+    const minDepth = Math.min(...g.events.map(e => e.depth));
+    for (const ev of g.events) {
+      const row = document.createElement('div');
+      row.className = 'ev' + (ev.kind === 'return' ? ' ret' : '');
+      row.dataset.seq = ev.seq;
+      row.style.paddingLeft = (6 + Math.max(0, ev.depth - minDepth) * 16) + 'px';
+      if (ev.kind === 'return') {
+        row.textContent = '↩ ' + String(ev.value ?? '').slice(0, 110);
+      } else {
+        const ph = phaseOf(ev.name);
+        if (ph) {
+          const chip = document.createElement('span');
+          chip.className = 'ph ' + ph[2];
+          chip.textContent = ph[1];
+          row.appendChild(chip);
+        }
+        const nm = document.createElement('span');
+        nm.className = 'nm';
+        nm.textContent = ev.name + (ev.tail ? ' ⁽ᵗ⁾' : '');
+        row.appendChild(nm);
+        const ar = document.createElement('span');
+        ar.className = 'ar';
+        ar.textContent = (ev.args.length ? ' ' + ev.args.join(' ') : ' ()').slice(0, 90);
+        row.appendChild(ar);
+        const at = document.createElement('span');
+        at.className = 'ln-at';
+        at.textContent = ` @${ev.line}`;
+        row.appendChild(at);
+        if (ev.truncated) row.title = '实参超上限,已截断';
+      }
+      row.title = `#${ev.seq} ${ev.module}:${ev.line}:${ev.col}`;
+      row.addEventListener('click', () => { selectEvent(ev); });
+      turn.appendChild(row);
+    }
+    container.appendChild(turn);
+  }
+  if (follow) {
+    container.scrollTop = container.scrollHeight;
+    const lastCall = latestCall();
+    if (lastCall) selectEvent(lastCall);
+  }
+}
+
+function renderTimelineBar(bar, evs) {
+  bar.textContent = '';
+  for (const ev of evs.slice(-160)) {
+    const tick = document.createElement('span');
+    const ph = ev.kind === 'call' ? phaseOf(ev.name) : null;
+    tick.className = 'tick ' + (ph ? ph[3] : 't-other');
+    tick.style.height = ev.kind === 'call'
+      ? (4 + Math.min(10, (ev.args || []).join(' ').length / 24)) + 'px' : '2px';
+    tick.title = `#${ev.seq} ${ev.kind} ${ev.name ?? ''}`;
+    tick.addEventListener('click', () => { selectEvent(ev); });
+    bar.appendChild(tick);
+  }
+}
+
+/* Inspector:源码窗口 + 事件详情 */
+function renderInspector(ev) {
+  const current = ev || latestCall();
+  const srcPane = document.getElementById('insSrc');
+  const detail = document.getElementById('insDetail');
+  if (!current) {
+    srcPane.textContent = '(no trace yet)';
+    return;
+  }
+  const module = String(current.module).split('/').pop();
+  const source = SOURCES[module];
+  document.getElementById('insWhere').textContent = module;
+  document.getElementById('insFile').textContent = String(current.module);
+  if (source == null) {
+    srcPane.textContent = `(源码未嵌入: ${module})`;
+  } else {
+    const lines = source.split('\n');
+    const curLine = String(current.module).endsWith(module) ? current.line : 0;
+    const from = Math.max(0, (curLine || 1) - 16), to = Math.min(lines.length, (curLine || 1) + 22);
+    let html = '';
+    for (let i = from; i < to; i++) {
+      const cur = (i + 1 === curLine);
+      const text = (lines[i] ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;');
+      html += `<span class="ln${cur ? ' cur' : ''}" id="insLine${i + 1}"><span class="no">${i + 1}</span>${text}</span>`;
+    }
+    srcPane.innerHTML = html;
+    const el = document.getElementById('insLine' + curLine);
+    if (el) srcPane.scrollTop = el.offsetTop - srcPane.clientHeight / 2; // pane 内滚动
+  }
+  // 详情卡
+  detail.textContent = '';
+  const kv = (k, v) => {
+    const row = document.createElement('div');
+    row.className = 'kv';
+    const b = document.createElement('b');
+    b.textContent = k;
+    row.appendChild(b);
+    row.appendChild(typeof v === 'string' ? document.createTextNode(v) : v);
+    detail.appendChild(row);
+  };
+  kv('event', `#${current.seq} ${current.kind}`);
+  kv('at', `${current.module}:${current.line}:${current.col}`);
+  kv('depth', String(current.depth) + (current.tail ? ' · tail call' : ''));
+  if (current.kind === 'call') {
+    const argsWrap = document.createElement('span');
+    (current.args || []).forEach(a => {
+      const c = document.createElement('code');
+      c.className = 'arg';
+      c.textContent = a;
+      argsWrap.appendChild(c);
+    });
+    if (current.truncated) {
+      const t = document.createElement('span');
+      t.style.cssText = 'color:var(--ph-exec);font-size:11px';
+      t.textContent = ' ⋯ 截断';
+      argsWrap.appendChild(t);
+    }
+    kv('args', argsWrap);
+  } else {
+    kv('value', String(current.value ?? ''));
+  }
+}
+
+function renderObserve() {
+  const follow = document.getElementById('follow').checked;
+  renderTimelineBar(document.getElementById('liveTimeline'), events);
+  renderTurnTimeline(document.getElementById('liveTl'), events, { follow, empty: mode === 'live' ? '等待 loom 控制台的运行…' : '(没有事件)' });
+  if (follow) renderInspector(null);
+  renderLiveStat();
+}
+
+function renderLiveStat() {
+  const stat = document.getElementById('liveStat');
+  if (mode === 'replay') {
+    const r = REPLAY.result ?? {};
+    stat.textContent = `离线运行 · ${events.length} 事件 · status ${r.status ?? '—'} · turns ${r.turns ?? '—'}`;
+  } else {
+    stat.textContent = `LIVE 轮询 · ${events.length} 事件 · cursor ${cursor ?? '—'}` + (dropped > 0 ? ` · dropped ${dropped}` : '');
+  }
+}
+
+async function pollLive() {
+  if (mode !== 'live') return;
+  try {
+    const url = cursor === null ? LIVE_BASE + '/api/trace' : LIVE_BASE + '/api/trace?after=' + cursor;
+    const r = await fetch(url, {cache: 'no-store'});
+    if (!r.ok) return;
+    const d = await r.json();
+    dropped = d.dropped ?? dropped;
+    if (d.events && d.events.length) {
+      for (const ev of d.events) events.push(ev);
+      if (events.length > 4000) events = events.slice(-3000);
+      cursor = d.cursor;
+      renderObserve();
+    } else if (cursor === null) { cursor = d.cursor ?? 0; renderLiveStat(); }
+  } catch (e) { /* 网络抖动:下一次轮询继续 */ }
+}
+
+function setMode(m) {
+  mode = m;
+  document.getElementById('mReplay').className = m === 'replay' ? 'on' : '';
+  document.getElementById('mLive').className = m === 'live' ? 'on' : '';
+  if (liveTimer) { clearInterval(liveTimer); liveTimer = null; }
+  if (m === 'replay') {
+    events = REPLAY.events.slice();
+    cursor = REPLAY.cursor; dropped = REPLAY.dropped ?? 0;
+    renderObserve();
+  } else {
+    events = []; cursor = null; dropped = 0;
+    renderObserve();
+    pollLive();
+    liveTimer = setInterval(pollLive, 600);
+  }
+}
+document.getElementById('mReplay').onclick = () => setMode('replay');
+document.getElementById('mLive').onclick = () => setMode('live');
+document.getElementById('follow').addEventListener('change', renderObserve);
+setMode('replay');
+
+/* ═══ Run:真实运行(POST /api/run,跨源授权已扩展到一次有界运行)═══ */
+let runPreCursor = null;
+document.getElementById('runForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const task = document.getElementById('runTask').value.trim();
+  if (!task) return;
+  const btn = document.getElementById('runBtn');
+  const outcome = document.getElementById('runOutcome');
+  btn.disabled = true; btn.textContent = '运行中…';
+  outcome.className = 'outcome show running';
+  document.getElementById('oState').textContent = 'running';
+  document.getElementById('oTitle').textContent = '已提交,等待循环终态(同步返回)';
+  document.getElementById('oBody').textContent = 'POST ' + LIVE_BASE + '/api/run\n  task: ' + task;
+  document.getElementById('runStat').textContent = '';
+  renderTurnTimeline(document.getElementById('runTl'), [], { empty: '运行中…(run 是同步的,返回后事件一次性出现)' });
+  try {
+    // 先固定游标:run 之后按 after=pre 拉取,只取这一轮的事件
+    if (runPreCursor === null) {
+      try {
+        const pre = await fetch(LIVE_BASE + '/api/trace', {cache: 'no-store'});
+        if (pre.ok) runPreCursor = (await pre.json()).cursor ?? 0;
+      } catch (e2) { runPreCursor = null; }
+    }
+    const r = await fetch(LIVE_BASE + '/api/run', {
+      method: 'POST', headers: {'content-type': 'application/json'},
+      body: JSON.stringify({message: task, max_turns: Number(document.getElementById('runTurns').value)})
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const data = await r.json();
+    // 终态映射:只展示后端真实产生的状态,不虚构
+    const okState = data.status === 'candidate';
+    const warnState = data.status === 'exhausted';
+    outcome.className = 'outcome show ' + (okState ? 'ok' : warnState ? 'warn' : 'bad');
+    document.getElementById('oState').textContent = data.status;
+    document.getElementById('oTitle').textContent =
+      okState ? '执行成功 — 程序候选成立' : warnState ? '预算耗尽 — turn 上限到达' : '失败 — 错误作为证据保留';
+    document.getElementById('oBody').textContent =
+      `turns ${data.turns}` + (data.output != null ? `\noutput: ${JSON.stringify(data.output)}` : '')
+      + (data.error ? `\nerror: ${data.error}` : '');
+    // 拉这一轮的事件
+    const after = runPreCursor !== null ? '?after=' + runPreCursor : '';
+    const t = await fetch(LIVE_BASE + '/api/trace' + after, {cache: 'no-store'});
+    const td = await t.json();
+    const evs = td.events ?? [];
+    document.getElementById('runStat').textContent = `${evs.length} 事件`;
+    renderTimelineBar(document.getElementById('runTimelineBar'), evs);
+    renderTurnTimeline(document.getElementById('runTl'), evs, { follow: true, empty: '(本轮没有 trace 事件)' });
+  } catch (err) {
+    outcome.className = 'outcome show bad';
+    document.getElementById('oState').textContent = 'unreachable';
+    document.getElementById('oTitle').textContent = '运行面不可达';
+    document.getElementById('oBody').textContent = String(err) + '\n(loom 控制台未就绪或网络失败——不掩盖,不重试伪装)';
+  }
+  btn.disabled = false; btn.textContent = '发起运行';
+});
+
+/* ═══ 状态:真实 /api/health(状态视图 + Observe 状态条共用)═══ */
+async function pollStatus() {
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  try {
+    const r = await fetch('https://loom.lszio.space/api/health', {cache: 'no-store'});
+    const d = await r.json();
+    document.getElementById('dLoom').className = 'dot ok';
+    set('loomStatus', d.status ?? '?');
+    set('loomTeach', d.teach ? '开启' : '未授予');
+    set('loomCursor', String(d['trace-cursor'] ?? '—'));
+    // Observe 状态条
+    document.getElementById('oLoomDot').className = 'dot ok';
+    set('oLoom', d.status ?? '?');
+    set('oTeach', d.teach ? '开启' : '未授予');
+    set('oCursor', String(d['trace-cursor'] ?? '—'));
+  } catch (e) {
+    document.getElementById('dLoom').className = 'dot down';
+    set('loomStatus', 'unreachable');
+    set('loomTeach', '—'); set('loomCursor', '—');
+    document.getElementById('oLoomDot').className = 'dot down';
+    set('oLoom', 'unreachable'); set('oTeach', '—'); set('oCursor', '—');
+  }
+  const token = (document.getElementById('groveToken').value || '').trim();
+  try {
+    const r = await fetch('https://api.groiz.lszio.space/api/health', {cache: 'no-store'});
+    const d = await r.json();
+    document.getElementById('dGrove').className = 'dot ok';
+    set('groveStatus', d.status ?? '?');
+    set('groveSchema', String(d.schema ?? '—'));
+    set('groveEpoch', String(d.owner_epoch ?? '—'));
+    set('groveSched', d.scheduler_failure == null ? '正常' : String(d.scheduler_failure));
+    document.getElementById('oGroveDot').className = 'dot ok';
+    set('oGrove', (d.status ?? '?') + (d.scheduler_failure == null ? '' : ' · scheduler 异常'));
+  } catch (e) {
+    document.getElementById('dGrove').className = 'dot down';
+    set('groveStatus', 'unreachable');
+    document.getElementById('oGroveDot').className = 'dot down';
+    set('oGrove', 'unreachable');
+  }
+  const runsView = document.getElementById('runsView');
+  const dRuns = document.getElementById('dRuns');
+  if (!token) {
+    dRuns.className = 'dot';
+    runsView.textContent = '填入 token 后这里显示运行台账。不带 token 时:认证被拒绝是权限模型在工作,不是故障。';
+  } else {
+    try {
+      const r = await fetch('https://api.groiz.lszio.space/api/runs', {headers: {Authorization: 'Bearer ' + token}});
+      if (!r.ok) {
+        dRuns.className = 'dot down';
+        runsView.textContent = '认证被拒绝(' + r.status + ')——权限模型在工作。';
+      } else {
+        const runs = await r.json();
+        dRuns.className = 'dot ok';
+        runsView.textContent = runs.length
+          ? runs.map(x => `${x.id}: ${x.state} ${x.steps_consumed}/${x.steps_budget}`).join('\n')
+          : '(当前没有运行)';
+      }
+    } catch (e) { dRuns.className = 'dot down'; runsView.textContent = 'unreachable'; }
+  }
+}
+document.getElementById('groveToken').addEventListener('change', pollStatus);
+pollStatus();
+setInterval(pollStatus, 8000);
+
+/* ═══ Learn:脚本化 Playground(演示,模型由脚本扮演)═══ */
 const CODE_SEGMENTS = {
   loop: `(<span class="cm">;; 循环只认行为表:决定"下一步做什么"的每个判定</span>
 <span class="cm">;; 都是表里的一项,宿主在组装时决定,循环无法自扩大。</span>
@@ -927,14 +1459,14 @@ const FILES = {
   stop:   ['libs/loom/agent.zio — agent--completed?', '判定'],
 };
 
-/* 模型脚本：与仓库 mock provider 一致（先坏后好） */
+/* 模型脚本:与仓库 mock provider 一致(先坏后好) */
 const MODEL_SCRIPT = [
   { fence: true, body: '(defn main [] (twice-nothing 21))\n(main)' },
   { fence: true, body: '(defn answer [] (println (* 21 2)))\n(answer)' },
   { fence: false, body: '抱歉，我无法完成这个任务。' },
 ];
 
-/* 执行模拟：镜像真实信封；turn2 起模型回复无围栏 → 无执行 */
+/* 执行模拟:镜像真实信封;turn2 起模型回复无围栏 → 无执行 */
 function fakeExecute(source, turn) {
   if (turn === 0) {
     return { status: 'failed',
@@ -954,7 +1486,7 @@ const zio = s => esc(s)
   .replace(/\(defn |\(loop |\(if |\(let\*? |\(recur |\(require /g, m => `<span class="kw">${m.slice(1)}</span> (`)
   .replace(/\(defn|\(loop|\(if|\(let\*?|\(recur|\(require/g, m => `<span class="kw">${m}</span>`);
 
-/* 阶段序列生成：由当前状态推下一步 */
+/* 阶段序列生成:由当前状态推下一步 */
 const MAX_TURNS = 3;
 let S = null;
 
@@ -1141,224 +1673,6 @@ document.getElementById('btnRun').onclick = () => {
 };
 document.getElementById('btnReset').onclick = reset;
 reset();
-
-/* ── 03 运行状态:真实 /api/health,不由页面模拟 ────────────────── */
-async function pollStatus() {
-  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
-  // loom 控制台:CORS 由 serve 对 GET /api/health 显式授予本页来源。
-  try {
-    const r = await fetch('https://loom.lszio.space/api/health', {cache: 'no-store'});
-    const d = await r.json();
-    document.getElementById('dLoom').className = 'dot ok';
-    set('loomStatus', d.status ?? '?');
-    set('loomTeach', d.teach ? '开启' : '未授予');
-    set('loomCursor', String(d['trace-cursor'] ?? '—'));
-  } catch (e) {
-    document.getElementById('dLoom').className = 'dot down';
-    set('loomStatus', 'unreachable');
-    set('loomTeach', '—'); set('loomCursor', '—');
-  }
-  // grove 控制面:health 免角色;runs/events 需要 reader token。
-  const token = (document.getElementById('groveToken').value || '').trim();
-  try {
-    const r = await fetch('https://api.groiz.lszio.space/api/health', {cache: 'no-store'});
-    const d = await r.json();
-    document.getElementById('dGrove').className = 'dot ok';
-    set('groveStatus', d.status ?? '?');
-    set('groveSchema', String(d.schema ?? '—'));
-    set('groveEpoch', String(d.owner_epoch ?? '—'));
-    set('groveSched', d.scheduler_failure == null ? '正常' : String(d.scheduler_failure));
-  } catch (e) {
-    document.getElementById('dGrove').className = 'dot down';
-    set('groveStatus', 'unreachable');
-    set('groveUptime', '—'); set('groveRuns', '—');
-  }
-  const runsView = document.getElementById('runsView');
-  const dRuns = document.getElementById('dRuns');
-  if (!token) {
-    dRuns.className = 'dot';
-    runsView.textContent = '填入 token 后这里显示运行台账。不带 token 时:认证被拒绝是权限模型在工作,不是故障。';
-  } else {
-    try {
-      const r = await fetch('https://api.groiz.lszio.space/api/runs', {headers: {Authorization: 'Bearer ' + token}});
-      if (!r.ok) {
-        dRuns.className = 'dot down';
-        runsView.textContent = '认证被拒绝(' + r.status + ')——权限模型在工作。';
-      } else {
-        const runs = await r.json();
-        dRuns.className = 'dot ok';
-        runsView.textContent = runs.length
-          ? runs.map(x => `${x.id}: ${x.state} ${x.steps_consumed}/${x.steps_budget}`).join('\n')
-          : '(当前没有运行)';
-      }
-    } catch (e) { dRuns.className = 'dot down'; runsView.textContent = 'unreachable'; }
-  }
-}
-document.getElementById('groveToken').addEventListener('change', pollStatus);
-pollStatus();
-setInterval(pollStatus, 8000);
-
-/* ── 04 函数执行实况:教学端口的落地页消费者 ─────────────────────
-   REPLAY = 一次真实离线运行的 trace(嵌入式,诚实标注);
-   LIVE   = 轮询 loom 控制台 GET /api/trace 的游标接口。
-   源码高亮的数据是 agent.zio 的真实文本;面板只渲染,不执行任何东西。 */
-const PHASES = [
-  ['complete', 'ask', 'p-ask', 't-ask'],
-  ['extract', 'extract', 'p-extract', 't-extract'],
-  ['execute', 'execute', 'p-exec', 't-exec'],
-  ['candidate?', 'check', 'p-check', 't-check'],
-  ['revise', 'revise', 'p-revise', 't-revise'],
-];
-function phaseOf(name) { for (const p of PHASES) if (p[0] === name) return p; return null; }
-const REPLAY = {"cursor":2847,"dropped":0,"events":[{"args":["{complete #<function> execute #<function> max-turns 2}"],"col":17,"depth":4,"kind":"call","line":80,"module":"agent.zio","name":"map?","seq":2581,"tail":false,"truncated":false},{"args":["{complete #<function> execute #<function> max-turns 2}","complete","nil"],"col":20,"depth":4,"kind":"call","line":81,"module":"agent.zio","name":"get","seq":2582,"tail":false,"truncated":false},{"args":["#<function>"],"col":25,"depth":4,"kind":"call","line":82,"module":"agent.zio","name":"fn?","seq":2583,"tail":false,"truncated":false},{"args":["{complete #<function> execute #<function> max-turns 2}","execute","nil"],"col":19,"depth":4,"kind":"call","line":84,"module":"agent.zio","name":"get","seq":2584,"tail":false,"truncated":false},{"args":["#<function>"],"col":24,"depth":4,"kind":"call","line":85,"module":"agent.zio","name":"fn?","seq":2585,"tail":false,"truncated":false},{"args":["{complete #<function> execute #<function> max-turns 2}","max-turns","3"],"col":21,"depth":4,"kind":"call","line":87,"module":"agent.zio","name":"get","seq":2586,"tail":false,"truncated":false},{"args":["{complete #<function> execute #<function> max-turns 2}","extract","#<function>"],"col":19,"depth":4,"kind":"call","line":88,"module":"agent.zio","name":"get","seq":2587,"tail":false,"truncated":false},{"args":["{complete #<function> execute #<function> max-turns 2}","revise","#<function>"],"col":18,"depth":4,"kind":"call","line":89,"module":"agent.zio","name":"get","seq":2588,"tail":false,"truncated":false},{"args":["{complete #<function> execute #<function> max-turns 2}","candidate?","#<function>"],"col":22,"depth":4,"kind":"call","line":90,"module":"agent.zio","name":"get","seq":2589,"tail":false,"truncated":false},{"args":["{complete #<function> execute #<function> max-turns 2}","price","nil"],"col":17,"depth":4,"kind":"call","line":91,"module":"agent.zio","name":"get","seq":2590,"tail":false,"truncated":false},{"args":["0","2"],"col":12,"depth":4,"kind":"call","line":93,"module":"agent.zio","name":">=","seq":2591,"tail":false,"truncated":false},{"args":["\"print the sum 1..10\"","nil"],"col":23,"depth":4,"kind":"call","line":97,"module":"agent.zio","name":"complete","seq":2592,"tail":false,"truncated":false},{"args":["{source \"(println 42)\" text \"{\"source\": \"(println 42)\"}\"}"],"col":24,"depth":4,"kind":"call","line":98,"module":"agent.zio","name":"extract","seq":2681,"tail":false,"truncated":false},{"args":["{source \"(println 42)\" text \"{\"source\": \"(println 42)\"}\"}","source","\"\""],"col":18,"depth":5,"kind":"call","line":47,"module":"agent.zio","name":"get","seq":2682,"tail":false,"truncated":false},{"args":["\"(println 42)\"","\"\""],"col":10,"depth":5,"kind":"call","line":48,"module":"agent.zio","name":"=","seq":2683,"tail":false,"truncated":false},{"args":["\"(println 42)\""],"col":29,"depth":4,"kind":"call","line":99,"module":"agent.zio","name":"nil?","seq":2684,"tail":false,"truncated":false},{"args":["\"(println 42)\""],"col":27,"depth":4,"kind":"call","line":102,"module":"agent.zio","name":"execute","seq":2685,"tail":false,"truncated":false},{"args":["nil"],"col":30,"depth":4,"kind":"call","line":103,"module":"agent.zio","name":"nil?","seq":2702,"tail":false,"truncated":false},{"args":["{error \"capability-denied: process isolation requires Linux namespaces at line 265, col 21\" output \"\" status \"failed\"}"],"col":16,"depth":4,"kind":"call","line":104,"module":"agent.zio","name":"candidate?","seq":2703,"tail":false,"truncated":false},{"args":["{error \"capability-denied: process isolation requires Linux namespaces at line 265, col 21\" output \"\" status \"failed\"}","status","\"failed\""],"col":42,"depth":5,"kind":"call","line":65,"module":"agent.zio","name":"get","seq":2704,"tail":false,"truncated":false},{"args":["\"failed\"","\"completed\""],"col":39,"depth":5,"kind":"call","line":65,"module":"agent.zio","name":"=","seq":2705,"tail":true,"truncated":false},{"args":["0","1"],"col":21,"depth":4,"kind":"call","line":108,"module":"agent.zio","name":"+","seq":2706,"tail":false,"truncated":false},{"args":["{error \"capability-denied: process isolation requires Linux namespaces at line 265, col 21\" output \"\" status \"failed\"}"],"col":32,"depth":4,"kind":"call","line":108,"module":"agent.zio","name":"revise","seq":2707,"tail":false,"truncated":false},{"args":["{error \"capability-denied: process isolation requires Linux namespaces at line 265, col 21\" output \"\" status \"failed\"}","error","\"no error detail was reported\""],"col":12,"depth":5,"kind":"call","line":59,"module":"agent.zio","name":"get","seq":2708,"tail":false,"truncated":false},{"args":["{error \"capability-denied: process isolation requires Linux namespaces at line 265, col 21\" output \"\" status \"failed\"}","turns","0"],"col":12,"depth":5,"kind":"call","line":60,"module":"agent.zio","name":"get","seq":2709,"tail":false,"truncated":false},{"args":["{error \"capability-denied: process isolation requires Linux namespaces at line 265, col 21\" output \"\" status \"failed\"}","status","\"failed\""],"col":13,"depth":5,"kind":"call","line":58,"module":"agent.zio","name":"get","seq":2710,"tail":false,"truncated":false},{"args":["1","2"],"col":12,"depth":4,"kind":"call","line":93,"module":"agent.zio","name":">=","seq":2711,"tail":false,"truncated":false},{"args":["\"print the sum 1..10\"","{error \"capability-denied: process isolation requires Linux namespaces at line 265, col 21\" status \"failed\" turns 0}"],"col":23,"depth":4,"kind":"call","line":97,"module":"agent.zio","name":"complete","seq":2712,"tail":false,"truncated":false},{"args":["{source \"(println 42)\" text \"{\"source\": \"(println 42)\"}\"}"],"col":24,"depth":4,"kind":"call","line":98,"module":"agent.zio","name":"extract","seq":2817,"tail":false,"truncated":false},{"args":["{source \"(println 42)\" text \"{\"source\": \"(println 42)\"}\"}","source","\"\""],"col":18,"depth":5,"kind":"call","line":47,"module":"agent.zio","name":"get","seq":2818,"tail":false,"truncated":false},{"args":["\"(println 42)\"","\"\""],"col":10,"depth":5,"kind":"call","line":48,"module":"agent.zio","name":"=","seq":2819,"tail":false,"truncated":false},{"args":["\"(println 42)\""],"col":29,"depth":4,"kind":"call","line":99,"module":"agent.zio","name":"nil?","seq":2820,"tail":false,"truncated":false},{"args":["\"(println 42)\""],"col":27,"depth":4,"kind":"call","line":102,"module":"agent.zio","name":"execute","seq":2821,"tail":false,"truncated":false},{"args":["nil"],"col":30,"depth":4,"kind":"call","line":103,"module":"agent.zio","name":"nil?","seq":2838,"tail":false,"truncated":false},{"args":["{error \"capability-denied: process isolation requires Linux namespaces at line 265, col 21\" output \"\" status \"failed\"}"],"col":16,"depth":4,"kind":"call","line":104,"module":"agent.zio","name":"candidate?","seq":2839,"tail":false,"truncated":false},{"args":["{error \"capability-denied: process isolation requires Linux namespaces at line 265, col 21\" output \"\" status \"failed\"}","status","\"failed\""],"col":42,"depth":5,"kind":"call","line":65,"module":"agent.zio","name":"get","seq":2840,"tail":false,"truncated":false},{"args":["\"failed\"","\"completed\""],"col":39,"depth":5,"kind":"call","line":65,"module":"agent.zio","name":"=","seq":2841,"tail":true,"truncated":false},{"args":["1","1"],"col":21,"depth":4,"kind":"call","line":108,"module":"agent.zio","name":"+","seq":2842,"tail":false,"truncated":false},{"args":["{error \"capability-denied: process isolation requires Linux namespaces at line 265, col 21\" output \"\" status \"failed\"}"],"col":32,"depth":4,"kind":"call","line":108,"module":"agent.zio","name":"revise","seq":2843,"tail":false,"truncated":false},{"args":["{error \"capability-denied: process isolation requires Linux namespaces at line 265, col 21\" output \"\" status \"failed\"}","error","\"no error detail was reported\""],"col":12,"depth":5,"kind":"call","line":59,"module":"agent.zio","name":"get","seq":2844,"tail":false,"truncated":false},{"args":["{error \"capability-denied: process isolation requires Linux namespaces at line 265, col 21\" output \"\" status \"failed\"}","turns","0"],"col":12,"depth":5,"kind":"call","line":60,"module":"agent.zio","name":"get","seq":2845,"tail":false,"truncated":false},{"args":["{error \"capability-denied: process isolation requires Linux namespaces at line 265, col 21\" output \"\" status \"failed\"}","status","\"failed\""],"col":13,"depth":5,"kind":"call","line":58,"module":"agent.zio","name":"get","seq":2846,"tail":false,"truncated":false},{"args":["2","2"],"col":12,"depth":4,"kind":"call","line":93,"module":"agent.zio","name":">=","seq":2847,"tail":false,"truncated":false}],"task":"print the sum 1..10","result":{"error":null,"output":null,"status":"exhausted","turns":2}};
-const SOURCES = { 'agent.zio': ";; ── zio.agent — the agent's own decision logic, in Zio ─────────────\n;;\n;; This module decides — route, validate, revise, stop — and the things\n;; it cannot do itself arrive as a BEHAVIOR TABLE: one per-session map\n;; of decision points, passed in as a parameter (spec §3 L1). No free\n;; variables, no `set!`-installed globals: the loop's behavior is\n;; readable from its argument, and swapping a decision point happens at\n;; a turn boundary by passing a different map.\n;;\n;;   :complete   (fn [task feedback]) → reply map. Required. How to ask\n;;               the model; reference: candidate/make-complete-binding.\n;;   :execute    (fn [source]) → outcome map with :status. Required.\n;;               How to run a candidate; reference:\n;;               candidate/make-execute-binding.\n;;   :extract    (fn [reply]) → source or nil. What counts as a program\n;;               in a reply. Default: source-of.\n;;   :revise     (fn [outcome]) → the feedback map the next turn sees.\n;;               Default: feedback-of.\n;;   :candidate? (fn [outcome]) → does this outcome end the loop as a\n;;               candidate. Default: an outcome whose :status is\n;;               \"completed\".\n;;   :price      (fn [turn reply outcome]) → metering hook, called once\n;;               per turn after execution. A host wires its budget\n;;               ledger here; the loop itself never prices.\n;;   :max-turns  the turn ceiling. The host also meters calls\n;;               independently — a program cannot grant itself more\n;;               turns than the grant allows.\n;;\n;; The split is the point. This file decides *when* to ask the model\n;; and *what* to do with the answer; the behavior decides what a model\n;; call costs, what a program is allowed to reach, and how long it may\n;; run. Required keys are refused, not defaulted: a behavior that\n;; cannot say how to ask or how to run is not a behavior.\n\n;; A reply with no source is not a program. Treating it as one would\n;; hand the host an empty string and report whatever the sandbox said\n;; about it, which reads like a result about the model's code when the\n;; model never wrote any.\n;;\n;; Both reference bindings return keyword-keyed maps — that is the Zio\n;; map convention, and reading them with string keys returns the\n;; default every time, which is how a failed turn ends up looking like\n;; it carried no error at all.\n;; doc: (source-of reply) — extracts the model's program source string from a\n;; doc: reply map, or nil when the reply carries no :source. Reads keyword keys only.\n(defn source-of [reply]\n  (let* [source (get reply :source \"\")]\n    (if (= source \"\")\n      nil\n      source)))\n\n;; The feedback the next turn sees. The error is carried whole, not\n;; summarized: a revision that is shown a paraphrase of why it failed\n;; is a revision guessing.\n;; doc: (feedback-of outcome) — builds the feedback map the next turn sees from an\n;; doc: execute outcome: {:status :error :turns}. The error text is carried whole.\n(defn feedback-of [outcome]\n  {:status (get outcome :status \"failed\")\n   :error (get outcome :error \"no error detail was reported\")\n   :turns (get outcome :turns 0)})\n\n;; The default \"what is a candidate\" decision: an execution outcome\n;; whose status is \"completed\". A behavior overrides this to widen or\n;; narrow what ends the loop.\n(def agent--completed? (fn [outcome] (= (get outcome :status \"failed\") \"completed\")))\n\n;; Run the agent loop.\n;;\n;; `max-turns` in the behavior is the ceiling the host passed in from\n;; the grant, not a number this function decided: the call count is\n;; also metered there, so a program that ignored this argument would\n;; still be stopped.\n;; doc: (agent-run task behavior) — the agent loop over a behavior table\n;; doc: {:complete :execute :extract :revise :candidate? :price :max-turns}.\n;; doc: Returns {:status \"candidate\" :turns :execution} on success or\n;; doc: {:status \"exhausted\" :turns :last} when the ceiling is hit.\n;; doc: :complete and :execute are required; the loop refuses a behavior\n;; doc: that cannot ask or cannot run.\n(defn agent-run [task behavior]\n  (let* [b (if (map? behavior) behavior {})\n         complete (get b :complete nil)\n         _complete (if (fn? complete) true\n                     (error \"loom: agent behavior requires :complete (fn [task feedback])\"))\n         execute (get b :execute nil)\n         _execute (if (fn? execute) true\n                    (error \"loom: agent behavior requires :execute (fn [source])\"))\n         max-turns (get b :max-turns 3)\n         extract (get b :extract source-of)\n         revise (get b :revise feedback-of)\n         candidate? (get b :candidate? agent--completed?)\n         price (get b :price nil)]\n    (loop [turn 0 feedback nil]\n      (if (>= turn max-turns)\n        {:status \"exhausted\"\n         :turns turn\n         :last feedback}\n        (let* [reply (complete task feedback)\n               source (extract reply)\n               outcome (if (nil? source)\n                         {:status \"failed\"\n                          :error \"the model returned no source to execute\"}\n                         (execute source))\n               _metered (if (nil? price) true (price turn reply outcome))]\n          (if (candidate? outcome)\n            {:status \"candidate\"\n             :turns (+ turn 1)\n             :execution outcome}\n            (recur (+ turn 1) (revise outcome))))))))\n\n\n(export agent-run source-of feedback-of)\n" };
-const LIVE_BASE = 'https://loom.lszio.space';
-
-let mode = 'replay';
-let events = [];
-let cursor = null, dropped = 0;
-let selectedSeq = null;
-let liveTimer = null;
-
-function latestCall() {
-  for (let i = events.length - 1; i >= 0; i--) if (events[i].kind === 'call') return events[i];
-  return null;
-}
-
-function renderLiveSrc() {
-  const pane = document.getElementById('liveSrc');
-  const current = latestCall();
-  if (!events.length) { pane.innerHTML = '<span class="ln" style="color:var(--muted);padding-left:12px">(没有事件)</span>'; return; }
-  const module = current ? String(current.module).split('/').pop() : null;
-  const source = module ? SOURCES[module] : null;
-  if (source == null) { pane.innerHTML = `<span class="ln" style="color:var(--muted);padding-left:12px">(源码未嵌入: ${module ?? '—'})</span>`; return; }
-  const lines = source.split('\n');
-  const curLine = current && String(current.module).endsWith(module) ? current.line : 0;
-  const from = Math.max(0, (curLine || 1) - 16), to = Math.min(lines.length, (curLine || 1) + 26);
-  let html = '';
-  for (let i = from; i < to; i++) {
-    const cur = (i + 1 === curLine);
-    const text = (lines[i] ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;');
-    html += `<span class="ln${cur ? ' cur' : ''}" id="srcline${i + 1}"><span class="no">${i + 1}</span>${text}</span>`;
-  }
-  pane.innerHTML = html;
-  const el = document.getElementById('srcline' + curLine);
-  if (el) {
-    // Pane-relative scroll: scrollIntoView would also scroll the page
-    // itself, yanking the reader to this panel on every render.
-    const pane = document.getElementById('liveSrc');
-    pane.scrollTop = el.offsetTop - pane.clientHeight / 2;
-  }
-}
-
-function renderLiveStack() {
-  const stack = document.getElementById('liveStack');
-  const tail = events.slice(-120);
-  const minDepth = tail.length ? Math.min(...tail.map(e => e.depth)) : 0;
-  stack.textContent = '';
-  for (const ev of tail) {
-    const div = document.createElement('div');
-    div.className = 'ev' + (ev.kind === 'return' ? ' ret' : '') + (ev.seq === selectedSeq ? ' cur' : '');
-    div.style.paddingLeft = (6 + Math.max(0, ev.depth - minDepth) * 14) + 'px';
-    if (ev.kind === 'return') div.textContent = '↩ ' + ev.value;
-    else {
-      const nm = document.createElement('span'); nm.className = 'nm';
-      nm.textContent = ev.name + (ev.tail ? ' ⁽ᵗ⁾' : '');
-      const ar = document.createElement('span'); ar.className = 'ar';
-      ar.textContent = ' ' + (ev.args.length ? ev.args.join(' ') : '()');
-      div.appendChild(nm); div.appendChild(ar);
-      if (ev.truncated) { const t = document.createElement('span'); t.className = 'tr'; t.textContent = ' ⋯'; div.appendChild(t); }
-    }
-    div.title = `#${ev.seq} ${ev.module}:${ev.line}:${ev.col}`;
-    div.addEventListener('click', () => { selectedSeq = ev.seq; renderLiveAll(); });
-    stack.appendChild(div);
-  }
-  stack.scrollTop = stack.scrollHeight;
-}
-
-function renderLivePhases() {
-  const bar = document.getElementById('livePhases');
-  bar.textContent = '';
-  const named = events.filter(e => e.kind === 'call' && phaseOf(e.name)).slice(-10);
-  for (const ev of named) {
-    const ph = phaseOf(ev.name);
-    const el = document.createElement('span');
-    el.className = 'ph ' + ph[2];
-    el.textContent = ph[1] + (ev.tail ? ' ↺' : '');
-    el.title = `#${ev.seq} ${ev.name} line ${ev.line}`;
-    el.addEventListener('click', () => { selectedSeq = ev.seq; renderLiveAll(); });
-    bar.appendChild(el);
-  }
-  if (!named.length) { const el = document.createElement('span'); el.className = 'ph'; el.textContent = '—'; bar.appendChild(el); }
-}
-
-function renderLiveTimeline() {
-  const tl = document.getElementById('liveTimeline');
-  tl.textContent = '';
-  for (const ev of events.slice(-160)) {
-    const tick = document.createElement('span');
-    const ph = ev.kind === 'call' ? phaseOf(ev.name) : null;
-    tick.className = 'tick ' + (ph ? ph[3] : 't-other');
-    tick.style.height = ev.kind === 'call' ? (4 + Math.min(10, (ev.args || []).join(' ').length / 24)) + 'px' : '2px';
-    tick.title = `#${ev.seq} ${ev.kind} ${ev.name ?? ''}`;
-    tick.addEventListener('click', () => { selectedSeq = ev.seq; renderLiveAll(); });
-    tl.appendChild(tick);
-  }
-}
-
-function renderLiveAll() { renderLiveSrc(); renderLiveStack(); renderLivePhases(); renderLiveTimeline(); renderLiveStat(); }
-
-function renderLiveStat() {
-  const stat = document.getElementById('liveStat');
-  const note = document.getElementById('liveNote');
-  if (mode === 'replay') {
-    const r = REPLAY.result ?? {};
-    stat.textContent = `离线运行 · ${events.length} 事件 · status ${r.status ?? '—'} · turns ${r.turns ?? '—'}`;
-    note.textContent = 'REPLAY:' + (REPLAY.task ?? '') + ' — 一次真实离线运行的 trace(mock 上游,macOS 无 namespace,jail 以 capability-denied 诚实拒绝候选执行,循环把失败当证据修订了两轮,耗尽 turn 上限)。源码与事件都来自仓库当前版本。点击任意事件回看那一行。';
-  } else {
-    stat.textContent = `LIVE 轮询 · ${events.length} 事件 · cursor ${cursor ?? '—'}` + (dropped > 0 ? ` · dropped ${dropped}` : '');
-    note.textContent = 'LIVE:每 600ms 轮询 loom 控制台的 GET /api/trace(游标合同与 grove /api/events 相同)。去 loom.lszio.space 的控制台点一次 run,这里就会出现那次循环的函数执行实况。';
-  }
-}
-
-async function pollLive() {
-  if (mode !== 'live') return;
-  try {
-    const url = cursor === null ? LIVE_BASE + '/api/trace' : LIVE_BASE + '/api/trace?after=' + cursor;
-    const r = await fetch(url, {cache: 'no-store'});
-    if (!r.ok) return;
-    const d = await r.json();
-    dropped = d.dropped ?? dropped;
-    if (d.events && d.events.length) {
-      for (const ev of d.events) events.push(ev);
-      if (events.length > 4000) events = events.slice(-3000);
-      cursor = d.cursor;
-      selectedSeq = null;
-      renderLiveAll();
-    } else if (cursor === null) { cursor = d.cursor ?? 0; renderLiveStat(); }
-  } catch (e) { /* 网络抖动:下一次轮询继续 */ }
-}
-
-function setMode(m) {
-  mode = m;
-  document.getElementById('mReplay').className = m === 'replay' ? 'on' : '';
-  document.getElementById('mLive').className = m === 'live' ? 'on' : '';
-  if (liveTimer) { clearInterval(liveTimer); liveTimer = null; }
-  if (m === 'replay') {
-    events = REPLAY.events.slice();
-    cursor = REPLAY.cursor; dropped = REPLAY.dropped ?? 0;
-    selectedSeq = null;
-    renderLiveAll();
-  } else {
-    events = []; cursor = null; dropped = 0; selectedSeq = null;
-    renderLiveAll();
-    pollLive();
-    liveTimer = setInterval(pollLive, 600);
-  }
-}
-document.getElementById('mReplay').onclick = () => setMode('replay');
-document.getElementById('mLive').onclick = () => setMode('live');
-setMode('replay');
 
 /* ── 主题:system → light → dark 循环,三产品共用 localStorage 键 ── */
 window.ztTheme = {
