@@ -57,15 +57,19 @@ loopback 地址会被拒绝绑定（见 `api.zio`）。
 
 `grove run` 驱动真实的 agent 循环：任务与授权上下文 → 模型生成 Zio 候选 →
 隔离执行 → 失败证据回给模型修订 → 停在 turn 上限。循环判定逻辑是
-`libs/loom/agent.zio` 的 `agent-run`；两个宿主绑定由运行方提供：
+`libs/loom/agent.zio` 的 `agent-run`；回复→源码契约（模型回复的候选提取、
+prompt 形状）单点定义在 `libs/loom/candidate.zio`，两个宿主绑定的参考实现
+也在那里，由运行方装配：
 
-- **启动器路径**（`tools/groiz run`）：`agent.zio` 用 `host/http-request`
-  调 OpenAI 兼容接口，用 `host/process-start` 把候选放进 jail 执行，候选
-  以 `zio --emit-framed` 的单帧 JSON 信封回报结果。需要 Linux namespaces；
-  其他平台执行会诚实拒绝（`capability-denied`），循环把该失败当证据继续。
+- **启动器路径**（`tools/groiz run`）：`agent.zio` 把 loom 的参考绑定装配到
+  provider 配置与启动器授权上——`host/http-request` 调 OpenAI 兼容接口，
+  `host/process-start` 把候选放进 jail 执行，候选以 `zio --emit-framed`
+  的单帧 JSON 信封回报结果。需要 Linux namespaces；其他平台执行会诚实拒绝
+  （`capability-denied`），循环把该失败当证据继续。
 - **Rust 路径**（`grove-app` 的 AgentHost，`cargo test` 覆盖）：绑定由
   Rust 侧装配——模型走 Loom session（测试用脚本化 ModelHost），候选走
-  `grove::execution` 沙箱。
+  `grove::execution` 沙箱；回复提取用 `libs/loom/candidate.zio` 契约的
+  Rust 镜像，两侧案例表逐条对拍。
 
 ```sh
 # provider 配置：OpenAI 兼容端点，放在授予的读根内（数据根或仓库根）

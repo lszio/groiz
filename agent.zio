@@ -1,22 +1,14 @@
 ;; The agent loop Grove actually runs.
 ;;
-;; libs/loom/agent.zio (under the granted share root) owns the decision
-;; logic: when to ask the model, what counts as a candidate, when to stop.
-;; The two things it cannot do itself are the host bindings this file
-;; implements before the loop starts:
-;;
-;;   (harness-complete task feedback) -> a reply map, :source when the
-;;                                       model named a program
-;;   (harness-execute-zio source)     -> an outcome map with :status
-;;
-;; The model is an OpenAI-compatible chat endpoint reached through
-;; host/http-request — the launcher's network grant, never a second
-;; transport. The candidate runs through host/process-start, the same
-;; jail every training worker runs behind, and speaks the same NDJSON
-;; contract the zio CLI's --emit-framed mode produces. On a host without
-;; Linux namespaces the execution refuses with capability-denied and the
-;; outcome records that honestly — the loop reports a failure, not a
-;; simulated success.
+;; libs/loom owns the loop and the bindings' reference implementation:
+;; libs/loom/agent.zio decides when to ask the model, what counts as a
+;; candidate, when to stop; libs/loom/candidate.zio owns the reply→source
+;; contract (one extraction, one prompt shape — previously this file and
+;; native/app/src/agent.rs each grew their own) and the reference
+;; harness-complete / harness-execute-zio implementations. This file is
+;; assembly only: it loads the provider config the launcher granted,
+;; binds loom's reference implementations to that config and to the
+;; launcher's execution grants, and hands the loop over.
 ;;
 ;; Everything here is trusted application code. The candidate cannot
 ;; reach any of it: its process starts with `env -i`, a scratch dir and
@@ -24,11 +16,16 @@
 
 (load "contracts.zio")
 (load "codec.zio")
+(require :libs.loom.candidate :refer [loom--complete-binding loom--execute-binding])
 
-;; Runtime context grove--run-handler installs before the loop starts.
-;; The harness bindings read it; nothing the model says can change it.
-(def agent--context nil)
+;; The bindings the loop sees, installed by agent--run before the loop
+;; starts and cleared after. `set!` on a def is load-time trusted code,
+;; not candidate-reachable.
+(def harness-complete nil)
+(def harness-execute-zio nil)
 
+;; Runtime defaults for the launcher path. The turn ceiling is also
+;; metered by the loop; these feed the bindings' config.
 (def agent--defaults
   {:max-turns 3
    :timeout-ms 60000
@@ -55,181 +52,44 @@
      :temperature (grove--get-key config :temperature (get agent--defaults :temperature))
      :max-tokens (grove--get-key config :maxTokens (get agent--defaults :max-tokens))}))
 
-(defn agent--endpoint [provider]
-  ;; A config that names :completions uses it verbatim (a provider whose
-  ;; path is not the standard /chat/completions); otherwise the standard
-  ;; path is appended to the baseURL.
-  (let [named (str (get provider :completions ""))]
-    (if (= named "")
-      (str (get provider :baseURL "") "/chat/completions")
-      named)))
-
-;; ---------- The model turn ----------
-
-(defn agent--prompt [task feedback]
-  (if (nil? feedback)
-    (str "Write a complete, self-contained Zio program that accomplishes this task.\n"
-         "Zio is a Lisp: define functions with defn, end the program with the value to report.\n"
-         "The program runs with no libraries and no host access.\n\nTask: " task "\n\n"
-         "Reply with the program inside a ```zio code fence and nothing else in the fence.")
-    (str "Your previous program failed to execute.\n\nTask: " task "\n\n"
-         "Execution report: status=" (get feedback :status "failed")
-         " error=" (get feedback :error "no error detail was reported") "\n\n"
-         "Write a corrected, complete program for the same task. Reply with the program "
-         "inside a ```zio code fence and nothing else in the fence.")))
-
-(defn agent--extract-source [text]
-  ;; The first fenced block is the program. A reply with no fence is not
-  ;; a program: the loop treats a nil source as a failed turn instead of
-  ;; executing whatever prose arrived.
-  (let [parts (str-split "```" text)]
-    (if (< (count parts) 2)
-      nil
-      (let [block (str-trim (get parts 1 ""))
-            lines (str-split "\n" block)]
-        (if (and (> (count lines) 1)
-                 (not (str-contains? (get lines 0 "") "("))
-                 (< (count (get lines 0 "")) 20))
-          (str-trim (reduce (fn [acc line] (if (= acc "") line (str acc "\n" line))) "" (rest lines)))
-          block)))))
-
-(defn agent--body-head [response]
-  ;; Error bodies are bounded evidence, not logs: the first 200 bytes
-  ;; name the failure without dumping a full response into the report.
-  (let* [bytes (host/bytes-utf8 (get response :body (host/bytes [])))
-         size (host/byte-length bytes)]
-    (host/bytes-utf8
-     (host/byte-slice bytes 0 (if (> size 200) 200 size)))))
-
-(defn agent--chat [provider messages]
-  (let* [key (host/getenv (get provider :api-key-env ""))
-         _ (grove--require (not (= key nil)) "invalid-input"
-                           (str "missing API key: export " (get provider :api-key-env "")
-                                " (the launcher decides which names the app may read)"))
-         body (json-stringify {:model (get provider :model "")
-                               :messages messages
-                               :temperature (get provider :temperature)
-                               :max_tokens (get provider :max-tokens)})
-         response (host/http-request
-                   {:url (agent--endpoint provider)
-                    :method "POST"
-                    :headers {"Authorization" (str "Bearer " key)
-                              "Content-Type" "application/json"}
-                    :body body})
-         status (get response :status 0)]
-    (grove--require (= status 200) "backend-failed"
-                    (str "provider answered " status ": " (agent--body-head response)))
-    (codec--normalize (json-parse (host/bytes-utf8 (get response :body))))))
-
-;; The loom loop's host binding: one ask, parsed honestly. A transport or
-;; provider failure raises — the run ends with the real error rather than
-;; spending turns against a provider that cannot answer.
-(defn harness-complete [task feedback]
-  (let* [provider (get agent--context :provider)
-         reply (agent--chat provider
-                            [{:role "user" :content (agent--prompt task feedback)}])
-         content (grove--get-key
-                  (grove--get-key (first (grove--get-key reply :choices [])) :message {})
-                  :content "")]
-    (if (nil? content)
-      {:text "the provider returned no message content"}
-      (let [source (agent--extract-source content)]
-        (if (nil? source)
-          {:text content}
-          {:source source :text content})))))
-
-;; ---------- The candidate execution ----------
-
-(defn agent--stage-candidate [run-dir source]
-  ;; Host path now, jail path inside the worker: the scratch root the
-  ;; launcher granted is bound at /scratch, so the candidate sees only
-  ;; that. The run directory name carries the clock so two candidates of
-  ;; one run never overwrite each other's evidence.
-  (let [host-dir (str (get agent--context :scratch "") "/agent/" run-dir)
-        jail-dir (str "/scratch/agent/" run-dir)]
-    (try (host/mkdir (str (get agent--context :scratch "") "/agent")) (catch any nil))
-    (host/mkdir host-dir)
-    (host/write-atomic (str host-dir "/candidate.zio") (host/bytes-utf8 source))
-    {:host-dir host-dir :jail-path (str jail-dir "/candidate.zio")}))
-
-(defn agent--read-frame [proc deadline-ms]
-  ;; The ready marker is consumed by process-start; the next frame is the
-  ;; envelope. eof before a frame means the child died without one.
-  (loop []
-    (let [reply (host/process-read proc 5000)
-          status (get reply :status "")]
-      (if (= status "frame")
-        (get reply :frame)
-        (if (= status "eof")
-          nil
-          (if (> (host/clock-ms) deadline-ms)
-            (error "timeout: candidate did not answer inside its deadline")
-            (recur)))))))
-
-(defn harness-execute-zio [source]
-  (let* [config (get agent--context :launcher)
-         zio-bin (try (host/getenv "ZIO_BIN") (catch any nil))
-         _ (grove--require (and (not (= zio-bin nil)) (not (= zio-bin ""))) "invalid-input"
-                           "candidate execution needs ZIO_BIN (the launcher grants it)")
-         scratch (get config :worker-scratch "")
-         _ (grove--require (not (= scratch "")) "invalid-input"
-                           "candidate execution needs the launcher's worker-scratch grant")
-         run-dir (str (host/clock-ms))
-         staged (agent--stage-candidate run-dir source)
-         step-limit (get agent--context :step-limit 1000000)
-         timeout-ms (get agent--context :timeout-ms 60000)
-         started (host/clock-ms)
-         outcome (try
-                   (let [proc (host/process-start
-                               {:executable zio-bin
-                                :argv ["--emit-framed" "--step-limit" (str step-limit)
-                                       "--timeout-ms" (str timeout-ms)
-                                       (get staged :jail-path)]
-                                :cwd "/scratch"
-                                :scratch scratch
-                                ;; app-share is a launcher-granted read root: the
-                                ;; same bind that lets the jail exec the binary
-                                ;; brings nothing else into the candidate.
-                                :read-only-mounts
-                                (if (= (get config :app-share "") "")
-                                  []
-                                  [{:source (get config :app-share "")
-                                    :target (get config :app-share "")}])
-                                :timeout-ms timeout-ms
-                                :max-frame-bytes 1048576
-                                :max-address-space 2147483648
-                                :max-cpu-seconds 300
-                                :max-processes 64})
-                         frame (agent--read-frame proc (+ started timeout-ms))]
-                     (host/process-kill proc)
-                     (if (nil? frame)
-                       {:status "failed" :error "candidate exited without a result envelope" :output ""}
-                       (let [normalized (codec--normalize frame)
-                             status (str (grove--get-key normalized :status "failed"))]
-                         {:status (if (= status "completed") "completed" "failed")
-                          :error (str (grove--get-key normalized :error ""))
-                          :output (str (grove--get-key normalized :output))})))
-                   (catch any
-                     {:status "failed" :error (str *error*) :output ""}))]
-    outcome))
-
 ;; ---------- The run ----------
 
 (defn agent--run [provider task max-turns launcher]
-  ;; Installs the execution context, then hands the loop to loom: this
-  ;; module decides what a model call costs and what a program may
-  ;; reach; libs/loom/agent.zio decides when to ask and when to stop.
-  ;; `set!` on a def is load-time trusted code, not candidate-reachable.
-  (set! agent--context
-        {:provider provider
-         :launcher launcher
-         :scratch (get launcher :worker-scratch "")
-         :step-limit (get agent--defaults :step-limit)
-         :timeout-ms (get agent--defaults :timeout-ms)})
-  (require :libs.loom.agent :refer [agent-run])
-  (let [result (agent-run task max-turns)]
-    (set! agent--context nil)
-    result))
+  ;; Assembles loom's reference bindings over this launcher's grants:
+  ;; the model endpoint and key name from the provider config, the
+  ;; candidate jail from the launcher's worker-scratch share and ZIO_BIN.
+  ;; The launcher path runs a whole-file program under --emit-framed, so
+  ;; the program-shape instructions say so; the reply format (JSON with a
+  ;; "source" key) is loom's contract, not a per-path choice.
+  (let* [zio-bin (try (host/getenv "ZIO_BIN") (catch any nil))
+         scratch (get launcher :worker-scratch "")]
+    (grove--require (and (not (= zio-bin nil)) (not (= zio-bin ""))) "invalid-input"
+                    "candidate execution needs ZIO_BIN (the launcher grants it)")
+    (grove--require (not (= scratch "")) "invalid-input"
+                    "candidate execution needs the launcher's worker-scratch grant")
+    (set! harness-complete
+          (loom--complete-binding
+           {:base-url (get provider :baseURL "")
+            :model (get provider :model "")
+            :completions (get provider :completions "")
+            :api-key-env (get provider :api-key-env "")
+            :temperature (get provider :temperature nil)
+            :max-tokens (get provider :max-tokens nil)
+            :program-instructions
+            (str "Zio is a Lisp: define functions with defn, end the program "
+                 "with the value to report. The program runs with no libraries "
+                 "and no host access.")}))
+    (set! harness-execute-zio
+          (loom--execute-binding
+           {:zio-bin zio-bin
+            :scratch scratch
+            :app-share (get launcher :app-share "")
+            :step-limit (get agent--defaults :step-limit)
+            :timeout-ms (get agent--defaults :timeout-ms)}))
+    (require :libs.loom.agent :refer [agent-run])
+    (let [result (agent-run task max-turns)]
+      (set! harness-complete nil)
+      (set! harness-execute-zio nil)
+      result)))
 
-(export agent--load-provider agent--run agent--prompt agent--extract-source
-        harness-complete harness-execute-zio)
+(export agent--load-provider agent--run harness-complete harness-execute-zio)
