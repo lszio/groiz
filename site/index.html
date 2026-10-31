@@ -1027,14 +1027,15 @@ function latestCall() {
 }
 
 /* 回合分组:一个 turn 从 `(if (>= turn max-turns)` 的判定调用开始。
-   这是展示逻辑,不是循环逻辑——分组依据来自教学端口的真实事件。 */
+   第一组若不是判定调用,是行为表组装(PRELUDE)。分组依据来自教学
+   端口的真实事件——这是展示逻辑,不是循环逻辑。 */
 function turnGroups(evs) {
   const groups = [];
   let cur = null;
   for (const ev of evs) {
     const isTurnCheck = ev.kind === 'call' && ev.name === '>=' && ev.line === 93;
     if (isTurnCheck || !cur) {
-      cur = { n: groups.length + 1, start: ev, events: [] };
+      cur = { n: groups.length + 1, start: ev, isCheck: isTurnCheck, events: [] };
       groups.push(cur);
     }
     cur.events.push(ev);
@@ -1068,10 +1069,19 @@ function renderTurnTimeline(container, evs, opts) {
     const head = document.createElement('div');
     head.className = 'turn-head';
     const label = document.createElement('span');
-    label.textContent = `TURN ${g.n}`;
+    let checkText = '';
+    if (g.isCheck) {
+      label.textContent = `TURN ${g.n}`;
+      const nums = (g.start.args || []).slice(-2).map(Number);
+      checkText = nums.length === 2 && nums.every(Number.isFinite)
+        ? `(>= ${nums[0]} ${nums[1]}) → ${nums[0] >= nums[1] ? '耗尽' : '继续'}`
+        : `(>= …)`;
+    } else {
+      label.textContent = 'PRELUDE';
+      checkText = '行为表组装';
+    }
     const check = document.createElement('span');
-    const args = (g.start.args || []).join(' ');
-    check.textContent = `(>= ${args}) → ${args.endsWith('false') ? '继续' : args.endsWith('true') ? '耗尽' : ''}`;
+    check.textContent = checkText;
     head.appendChild(label); head.appendChild(check);
     turn.appendChild(head);
     const minDepth = Math.min(...g.events.map(e => e.depth));
@@ -1302,6 +1312,8 @@ document.getElementById('runForm').addEventListener('submit', async (e) => {
     document.getElementById('oState').textContent = 'unreachable';
     document.getElementById('oTitle').textContent = '运行面不可达';
     document.getElementById('oBody').textContent = String(err) + '\n(loom 控制台未就绪或网络失败——不掩盖,不重试伪装)';
+    document.getElementById('runStat').textContent = '';
+    renderTurnTimeline(document.getElementById('runTl'), [], { empty: '(运行未发生——没有 trace 事件)' });
   }
   btn.disabled = false; btn.textContent = '发起运行';
 });
