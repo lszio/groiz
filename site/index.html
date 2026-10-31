@@ -262,6 +262,55 @@
     padding: 12px 16px; font-size: 13.5px; max-width: 820px;
   }
   footer .fine { margin-top: 22px; font-size: 12.5px; color: #5c6579; }
+  /* ── 03 运行状态 ── */
+  .status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; margin-top: 22px; }
+  .status-card { background: var(--bg-soft); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; }
+  .status-card h3 { margin: 0 0 4px; font-size: 14px; color: var(--text); display: flex; align-items: center; gap: 8px; }
+  .status-card .sub { color: var(--muted); font-size: 12px; margin-bottom: 12px; }
+  .status-card .row { display: flex; justify-content: space-between; font-size: 13px; padding: 3px 0; border-top: 1px dashed var(--line); }
+  .status-card .row b { color: var(--text); font-weight: 500; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: #475069; display: inline-block; }
+  .dot.ok { background: var(--accent); box-shadow: 0 0 8px rgba(94,234,212,.5); }
+  .dot.down { background: #f87171; }
+  .status-card input { background: var(--bg); border: 1px solid var(--line); color: var(--text);
+    border-radius: 6px; padding: 6px 9px; font: 12px var(--mono); width: 100%; box-sizing: border-box; }
+  .status-card .hint { color: var(--muted); font-size: 11px; margin-top: 8px; line-height: 1.5; }
+
+  /* ── 04 函数执行实况 ── */
+  .live-shell { background: var(--bg-soft); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; margin-top: 22px; }
+  .live-bar { display: flex; gap: 10px; align-items: center; padding: 10px 14px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  .live-bar .mode { display: flex; gap: 0; border: 1px solid var(--line); border-radius: 7px; overflow: hidden; }
+  .live-bar .mode button { background: transparent; color: var(--muted); border: 0; padding: 6px 14px; font: 12.5px var(--mono); cursor: pointer; }
+  .live-bar .mode button.on { background: var(--accent); color: #06281f; font-weight: 600; }
+  .live-bar .stat { color: var(--muted); font-size: 12px; }
+  .live-main { display: flex; min-height: 380px; }
+  .live-src { flex: 1.15; overflow: auto; border-right: 1px solid var(--line); background: var(--bg); font-size: 12.5px; line-height: 1.5; padding: 10px 0; }
+  .live-src .ln { display: block; padding-right: 10px; white-space: pre; color: #9aa6bd; }
+  .live-src .no { display: inline-block; width: 3.4ch; text-align: right; margin-right: 12px; color: #39415a; user-select: none; }
+  .live-src .cur { background: rgba(94,234,212,.12); color: var(--text); box-shadow: inset 2px 0 0 var(--accent); }
+  .live-src .cur .no { color: var(--accent); }
+  .live-right { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  .live-phases { display: flex; gap: 4px; padding: 10px 12px 6px; align-items: center; overflow: hidden; }
+  .live-phases .ph { font-size: 11px; padding: 2px 9px; border-radius: 9px; background: #1a2032; color: var(--muted); white-space: nowrap; cursor: pointer; }
+  .live-timeline { height: 18px; margin: 0 12px 6px; display: flex; align-items: flex-end; gap: 1px; overflow: hidden; cursor: crosshair; }
+  .live-timeline .tick { width: 3px; min-height: 3px; border-radius: 1px; opacity: .85; }
+  .live-stack { flex: 1; overflow-y: auto; padding: 2px 12px 12px; font-size: 12.5px; font-family: var(--mono); }
+  .live-stack .ev { padding: 1px 6px; border-radius: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #9aa6bd; }
+  .live-stack .ev .nm { font-weight: 600; color: var(--text); }
+  .live-stack .ev .ar { color: var(--muted); }
+  .live-stack .ev .tr { color: #e0af68; font-size: 11px; }
+  .live-stack .ev.cur { background: rgba(129,140,248,.12); outline: 1px solid var(--accent-2); }
+  .live-stack .ev.ret { color: #475069; }
+  .live-note { padding: 6px 14px 10px; color: var(--muted); font-size: 11.5px; line-height: 1.6; }
+  .p-ask { background: rgba(129,140,248,.18) !important; color: #a5b4fc !important; }
+  .p-extract { background: rgba(94,234,212,.14) !important; color: var(--accent) !important; }
+  .p-exec { background: rgba(224,175,104,.16) !important; color: #e0af68 !important; }
+  .p-check { background: rgba(196,167,245,.16) !important; color: #c4a7f5 !important; }
+  .p-revise { background: rgba(245,167,196,.16) !important; color: #f5a7c4 !important; }
+  .t-ask { background: #818cf8; } .t-extract { background: #5eead4; }
+  .t-exec { background: #e0af68; } .t-check { background: #c4a7f5; }
+  .t-revise { background: #f5a7c4; } .t-other { background: #39415a; }
+  @media (max-width: 860px) { .live-main { flex-direction: column; } .live-src { max-height: 300px; border-right: 0; border-bottom: 1px solid var(--line); } }
 </style>
 </head>
 <body>
@@ -277,6 +326,7 @@
     </p>
     <div class="cta">
       <a class="btn primary" href="#playground">进入 Playground</a>
+      <a class="btn" href="#live">函数执行实况</a>
       <a class="btn" href="#teaching">先看原理</a>
       <a class="btn" href="https://github.com/lszio/groiz" target="_blank" rel="noopener">GitHub 仓库</a>
     </div>
@@ -297,11 +347,11 @@
       </div>
       <div class="loop-node" data-node="model">
         <div class="n">ASK</div><div class="t">询问模型</div>
-        <div class="d"><code style="font-family:var(--mono)">harness-complete</code>：任务 + 上一轮失败证据 → 程序候选</div>
+        <div class="d"><code style="font-family:var(--mono)">complete</code>（行为表项）：任务 + 上一轮失败证据 → 程序候选</div>
       </div>
       <div class="loop-node" data-node="exec">
         <div class="n">EXECUTE</div><div class="t">隔离执行</div>
-        <div class="d"><code style="font-family:var(--mono)">harness-execute-zio</code>：jail 里的 zio 进程，单帧 JSON 信封回报</div>
+        <div class="d"><code style="font-family:var(--mono)">execute</code>（行为表项）：jail 里的 zio 进程，单帧 JSON 信封回报</div>
       </div>
       <div class="loop-node" data-node="feedback">
         <div class="n">REVISION</div><div class="t">失败即证据</div>
@@ -368,8 +418,8 @@
         <h3>整个循环，就这一个函数</h3>
         <p>
           <code class="inline">agent-run</code> 是循环的全部控制流：带一个 turn 计数和一个 feedback 值递归（尾递归）。
-          每轮做三件事：<b>问</b>（harness-complete 拿到回复），<b>执行</b>（harness-execute-zio 跑真实进程），
-          <b>判定</b>（completed → candidate 结束；否则带着失败证据进下一轮）。
+          循环读的是<b>行为表</b>——每个判定都是表里的一项。每轮做三件事：<b>问</b>（<code class="inline">complete</code> 拿到回复），<b>执行</b>（<code class="inline">execute</code> 跑真实进程），
+          <b>判定</b>（<code class="inline">candidate?</code> 成立 → candidate 结束；否则带着失败证据进下一轮）。
         </p>
         <p>
           注意 <code class="inline">max-turns</code> 的来源——它是<b>宿主传进来的上限</b>，不是程序自己决定的数。
@@ -383,31 +433,35 @@
       </div>
       <div class="card code-panel">
         <div class="code-file"><span>libs/loom/agent.zio — Zio 库（Loom）</span><span>循环判定</span></div>
-        <div class="code-block"><pre class="code"><span class="cm">;; 循环本身。max-turns 是宿主授予的上限，不是这段</span>
-<span class="cm">;; 代码决定的数：调用计数在宿主侧独立计量。</span>
-(<span class="kw">defn</span> <span class="fn">agent-run</span> [task max-turns]
-  (<span class="kw">loop</span> [turn 0 feedback nil]
-    (<span class="kw">if</span> (&gt;= turn max-turns)
-      {:status <span class="st">"exhausted"</span>
-       :turns turn
-       :last feedback}
-      (<span class="kw">let*</span> [reply (<span class="fn">harness-complete</span> task feedback)   <span class="cm">;; ① 问</span>
-             source (source-of reply)                <span class="cm">;; 无 :source 则非程序</span>
-             outcome (<span class="kw">if</span> (nil? source)
-                       {:status <span class="st">"failed"</span>
-                        :error <span class="st">"the model returned no source to execute"</span>}
-                       (<span class="fn">harness-execute-zio</span> source))] <span class="cm">;; ② 执行</span>
-        (<span class="kw">if</span> (= (get outcome :status <span class="st">"failed"</span>) <span class="st">"completed"</span>)
-          {:status <span class="st">"candidate"</span>                       <span class="cm">;; ③ 成功即候选</span>
-           :turns (+ turn 1)
-           :execution outcome}
-          (<span class="kw">recur</span> (+ turn 1) (feedback-of outcome))))))) <span class="cm">;; ④ 失败回炉</span>
+        <div class="code-block"><pre class="code"><span class="cm">;; 循环本身:判定逻辑全是行为表的项。max-turns 是</span>
+<span class="cm">;; 宿主授予的上限,不是这段代码决定的数:调用计数</span>
+<span class="cm">;; 在宿主侧独立计量。</span>
+(<span class="kw">defn</span> <span class="fn">agent-run</span> [task behavior]
+  (<span class="kw">let*</span> [b (<span class="kw">if</span> (<span class="fn">map?</span> behavior) behavior {})
+         <span class="fn">complete</span>   (<span class="fn">get</span> b <span class="st">:complete</span> nil)      <span class="cm">;; ① 问(必填)</span>
+         <span class="fn">execute</span>    (<span class="fn">get</span> b <span class="st">:execute</span> nil)       <span class="cm">;; ② 执行(必填)</span>
+         max-turns  (<span class="fn">get</span> b <span class="st">:max-turns</span> 3)
+         extract    (<span class="fn">get</span> b <span class="st">:extract</span> source-of)
+         revise     (<span class="fn">get</span> b <span class="st">:revise</span> feedback-of)
+         <span class="fn">candidate?</span> (<span class="fn">get</span> b <span class="st">:candidate?</span> agent--completed?)]
+    (<span class="kw">loop</span> [turn 0 feedback nil]
+      (<span class="kw">if</span> (&gt;= turn max-turns)
+        {:status <span class="st">"exhausted"</span> :turns turn :last feedback}
+        (<span class="kw">let*</span> [reply (<span class="fn">complete</span> task feedback)          <span class="cm">;; 问</span>
+               source (extract reply)                  <span class="cm">;; 无 :source 则非程序</span>
+               outcome (<span class="kw">if</span> (nil? source)
+                         {:status <span class="st">"failed"</span>
+                          :error <span class="st">"the model returned no source to execute"</span>}
+                         (<span class="fn">execute</span> source))]            <span class="cm">;; 执行</span>
+          (<span class="kw">if</span> (<span class="fn">candidate?</span> outcome)
+            {:status <span class="st">"candidate"</span> :turns (+ turn 1) :execution outcome}
+            (<span class="kw">recur</span> (+ turn 1) (revise outcome))))))))
 
 (<span class="kw">defn</span> <span class="fn">feedback-of</span> [outcome]
   <span class="cm">;; 错误整条携带，不摘要：看到转述的修订是在猜。</span>
-  {:status  (get outcome :status <span class="st">"failed"</span>)
-   :error   (get outcome :error <span class="st">"no error detail was reported"</span>)
-   :turns   (get outcome :turns 0)})</pre></div>
+  {:status  (<span class="fn">get</span> outcome <span class="st">:status</span> <span class="st">"failed"</span>)
+   :error   (<span class="fn">get</span> outcome <span class="st">:error</span> <span class="st">"no error detail was reported"</span>)
+   :turns   (<span class="fn">get</span> outcome <span class="st">:turns</span> 0)})</pre></div>
       </div>
     </div>
 
@@ -415,7 +469,8 @@
       <div class="prose">
         <h3>两个宿主绑定：合同先行</h3>
         <p>
-          <code class="inline">harness-complete</code> 与 <code class="inline">harness-execute-zio</code>
+          <code class="inline">complete</code> 与 <code class="inline">execute</code>（行为表项，由
+          <code class="inline">make-complete-binding</code> / <code class="inline">make-execute-binding</code> 组装）
           是循环不能自己完成的两件事。它们按<b>调用方</b>装配：
         </p>
         <ul>
@@ -428,49 +483,58 @@
         </p>
         <table class="map-table">
           <tr><th>绑定</th><th>入参</th><th>返回</th></tr>
-          <tr><td>harness-complete</td><td>(task feedback)</td><td>{:source "…"} 有程序；{:text "…"} 只是话</td></tr>
-          <tr><td>harness-execute-zio</td><td>(source)</td><td>{:status "completed"|"failed" :error :output}</td></tr>
+          <tr><td>complete</td><td>(task feedback)</td><td>{:source "…"} 有程序；{:text "…"} 只是话</td></tr>
+          <tr><td>execute</td><td>(source)</td><td>{:status "completed"|"failed" :error :output}</td></tr>
         </table>
         <p>
           <b>没有 :source 的回复不是程序。</b>把它当程序执行，等于把空串递给沙箱、再报告沙箱对空串的看法——读起来像在评价模型写的代码，其实模型什么都没写。
         </p>
       </div>
       <div class="card code-panel">
-        <div class="code-file"><span>agent.zio — Groiz 启动器路径</span><span>宿主绑定</span></div>
-        <div class="code-block"><pre class="code"><span class="cm">;; 模型一侧：OpenAI 兼容端点，启动器的网络授权。</span>
-(<span class="kw">defn</span> <span class="fn">harness-complete</span> [task feedback]
-  (<span class="kw">let*</span> [provider (get agent--context :provider)
-         reply (agent--chat provider
-                 [{:role <span class="st">"user"</span>
-                   :content (agent--prompt task feedback)}])
-         content (…choices[0].message.content…)]
-    (<span class="kw">if</span> (nil? content)
-      {:text <span class="st">"the provider returned no message content"</span>}
-      (<span class="kw">let</span> [source (agent--extract-source content)]
-        (<span class="kw">if</span> (nil? source)
-          {:text content}          <span class="cm">;; 说话，不是程序</span>
-          {:source source :text content})))))
+        <div class="code-file"><span>libs/loom/candidate.zio — 参考绑定</span><span>宿主绑定</span></div>
+        <div class="code-block"><pre class="code"><span class="cm">;; 模型一侧:OpenAI 兼容端点,启动器的网络授权。</span>
+<span class="cm">;; make-complete-binding 返回闭包,闭包内经 host/getenv</span>
+<span class="cm">;; 读 key——名字进得了行为表,值进不了。</span>
+(<span class="kw">defn</span> <span class="fn">make-complete-binding</span> [config]
+  (<span class="kw">fn</span> [task feedback]
+    (<span class="kw">let*</span> [reply (<span class="hl">host/http-request</span>
+                   (str base-url <span class="st">"/chat/completions"</span>)
+                   {:method <span class="st">"POST"</span>
+                    <span class="hl">:headers {:authorization (str <span class="st">"Bearer "</span> (host/getenv api-key-env))}</span>
+                    :body (json-stringify {:model model
+                            <span class="cm">;; ① 问:任务 + 上一轮失败证据</span>
+                            :messages [{:role <span class="st">"user"</span>
+                              :content (prompt task feedback)}]})})
+           content (…choices[0].message.content…)]
+      (<span class="kw">if</span> (nil? content)
+        {:text <span class="st">"the provider returned no message content"</span>}
+        (<span class="kw">let</span> [source (fence-source content)]
+          (<span class="kw">if</span> (nil? source)
+            {:text content}          <span class="cm">;; 说话，不是程序</span>
+            {:source source :text content})))))
 
-<span class="cm">;; 候选一侧：同一个 jail、同一个 NDJSON 合同。</span>
-(<span class="kw">defn</span> <span class="fn">harness-execute-zio</span> [source]
-  (<span class="kw">let*</span> […staged (agent--stage-candidate run-dir source)…]
-    (<span class="kw">try</span>
-      (<span class="kw">let</span> [proc (host/process-start
-                  {:executable zio-bin
-                   :argv [<span class="st">"--emit-framed"</span> <span class="st">"--step-limit"</span> …
-                          jail-path]
-                   :cwd <span class="st">"/scratch"</span> :scratch scratch
-                   :read-only-mounts [{:source app-share …}]
-                   :timeout-ms timeout-ms
-                   :max-cpu-seconds 300 :max-processes 64})
-             frame (agent--read-frame proc deadline)]
-        (host/process-kill proc)
-        <span class="cm">;; 信封 → outcome map：status/error/output</span>
-        (outcome-of frame))
-      (<span class="kw">catch</span> any
-        <span class="cm">;; macOS 没有 Linux namespaces：诚实拒绝，</span>
-        <span class="cm">;; 这个失败本身作为证据进入下一轮。</span>
-        {:status <span class="st">"failed"</span> :error (<span class="kw">str</span> *error*) :output <span class="st">""</span>}))))</pre></div>
+<span class="cm">;; 候选一侧:同一个 jail、同一个 NDJSON 合同。</span>
+(<span class="kw">defn</span> <span class="fn">make-execute-binding</span> [config]
+  (<span class="kw">fn</span> [source]
+    (<span class="kw">let*</span> […staged (host/write-atomic host-dir source)…]
+      (<span class="kw">try</span>
+        (<span class="kw">let</span> [proc (<span class="hl">host/process-start</span>
+                    {:executable zio-bin
+                     :argv [<span class="st">"--emit-framed"</span> <span class="st">"--step-limit"</span> …
+                            jail-path]
+                     :cwd jail-scratch :scratch scratch
+                     <span class="cm">;; app-share 是启动器授予的读根:</span>
+                     :read-only-mounts [{:source app-share …}]
+                     :timeout-ms timeout-ms
+                     :max-cpu-seconds 300 :max-processes 64})
+               frame (candidate--read-frame proc deadline)]
+          (host/process-kill proc)
+          <span class="cm">;; 信封 → outcome map：status/error/output</span>
+          (candidate--outcome-of frame))
+        (<span class="kw">catch</span> any
+          <span class="cm">;; macOS 没有 Linux namespaces：诚实拒绝，</span>
+          <span class="cm">;; 这个失败本身作为证据进入下一轮。</span>
+          {:status <span class="st">"failed"</span> :error (<span class="kw">str</span> *error*) :output <span class="st">""</span>})))))</pre></div>
       </div>
     </div>
 
@@ -551,6 +615,74 @@
   </div>
 </section>
 
+<section id="status">
+  <div class="wrap">
+    <h2><span class="idx">03</span>运行状态</h2>
+    <p class="section-sub">
+      这一节没有模拟:卡片直接请求运行面的 <b style="color:var(--text)">/api/health</b>。
+      loom 控制台(同一个 agent 框架的线上实例)与 grove 控制面各自报告自己的真实状态;
+      教学端口(04 节的数据源)是否开启,是启动器是否授予 <code style="font-family:var(--mono)">LOOM_TEACH_MODULES</code> 决定的。
+    </p>
+    <div class="status-grid">
+      <div class="status-card">
+        <h3><span class="dot" id="dLoom"></span>loom 控制台 <span style="color:var(--muted);font-weight:400;font-size:11px">loom.lszio.space</span></h3>
+        <div class="sub">agent 框架线上实例 — 预算会话 / 教学端口</div>
+        <div class="row"><span>status</span><b id="loomStatus">…</b></div>
+        <div class="row"><span>教学端口 (trace)</span><b id="loomTeach">…</b></div>
+        <div class="row"><span>trace cursor</span><b id="loomCursor">…</b></div>
+        <div class="row"><span>查看</span><b><a href="https://loom.lszio.space" target="_blank" rel="noopener" style="color:var(--accent)">打开控制台 ↗</a></b></div>
+      </div>
+      <div class="status-card">
+        <h3><span class="dot" id="dGrove"></span>grove 控制面 <span style="color:var(--muted);font-weight:400;font-size:11px">api.groiz.lszio.space</span></h3>
+        <div class="sub">学习运行的平台面 — 运行台账 / 事件日志</div>
+        <div class="row"><span>status</span><b id="groveStatus">…</b></div>
+        <div class="row"><span>uptime</span><b id="groveUptime">…</b></div>
+        <div class="row"><span>runs</span><b id="groveRuns">…</b></div>
+        <div class="row"><span>查看</span><b><a href="https://api.groiz.lszio.space/api/health" target="_blank" rel="noopener" style="color:var(--accent)">health ↗</a></b></div>
+      </div>
+      <div class="status-card">
+        <h3><span class="dot" id="dRuns"></span>运行台账(可选)</h3>
+        <div class="sub">/api/runs · /api/events 需要 reader 角色 token — 公开页面不内置凭据,愿意带的访客可自行填入(只存本机)。</div>
+        <input id="groveToken" placeholder="GROIZ_TOKEN_READER…(可选)" autocomplete="off">
+        <div class="hint" id="runsView">填入 token 后这里显示运行台账。不带 token 时:认证被拒绝是权限模型在工作,不是故障。</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="live">
+  <div class="wrap">
+    <h2><span class="idx">04</span>函数执行实况</h2>
+    <p class="section-sub">
+      agent 循环自己在被观测:zio 语言的<b style="color:var(--text)">教学观测器</b>(第二个观测端口,显式 opt-in)
+      在循环每次调用处携带实参(尺寸/深度上限,超限截断)上报。左列是被追踪的真实源码
+      <code style="font-family:var(--mono)">libs/loom/agent.zio</code>,高亮当前 form;右列是调用栈与阶段带。
+      白名单只监听 agent.zio —— 凭据流经的模块不在端口内。REPLAY 是一次真实离线运行
+      (jail 诚实拒绝,两轮修订后耗尽 turn 上限);LIVE 轮询 loom 控制台的最新运行。
+    </p>
+    <div class="live-shell">
+      <div class="live-bar">
+        <div class="mode">
+          <button id="mReplay" class="on">REPLAY</button>
+          <button id="mLive">LIVE · loom.lszio.space</button>
+        </div>
+        <span class="stat" id="liveStat"></span>
+      </div>
+      <div class="live-main">
+        <div class="live-src" id="liveSrc"></div>
+        <div class="live-right">
+          <div class="live-phases" id="livePhases"></div>
+          <div class="live-timeline" id="liveTimeline"></div>
+          <div class="live-stack" id="liveStack"></div>
+        </div>
+      </div>
+      <div class="live-note" id="liveNote">
+        trace 合同:证据 trace(无值)与服务 trace(带值、有上限)是两个端口,互不污染。点击阶段带/时间轴/调用栈任意事件可回看那一行。
+      </div>
+    </div>
+  </div>
+</section>
+
 <footer>
   <div class="wrap">
     <div class="repos">
@@ -577,82 +709,91 @@ const CODE = {
 };
 
 const CODE_SEGMENTS = {
-  loop: `(<span class="kw">defn</span> <span class="fn">agent-run</span> [task max-turns]
-  (<span class="kw">loop</span> [turn 0 feedback nil]
-    (<span class="kw">if</span> (&gt;= turn max-turns)
-      {:status <span class="st">"exhausted"</span> :turns turn :last feedback}
-      (<span class="kw">let*</span> [reply (<span class="hl2"><span class="fn">harness-complete</span> task feedback)</span>
-             source (source-of reply)
-             outcome (<span class="kw">if</span> (nil? source)
-                       {:status <span class="st">"failed"</span> :error <span class="st">"…no source…"</span>}
-                       (<span class="hl"><span class="fn">harness-execute-zio</span> source)</span>)]
-        (<span class="kw">if</span> (= (get outcome :status <span class="st">"failed"</span>) <span class="st">"completed"</span>)
-          {:status <span class="st">"candidate"</span> :turns (+ turn 1) :execution outcome}
-          (<span class="hl2">(<span class="kw">recur</span> (+ turn 1) (feedback-of outcome))</span>)))))`,
-  complete: `(<span class="kw">defn</span> <span class="fn">harness-complete</span> [task feedback]     <span class="cm">;; ← ① 问模型</span>
-  (<span class="kw">let*</span> [provider (get agent--context :provider)
-         reply (agent--chat provider
-                 [{:role <span class="st">"user"</span> :content (<span class="hl2">agent--prompt task feedback</span>)}])
-         content (… choices[0].message.content …)]
-    (<span class="kw">if</span> (nil? content)
-      {:text <span class="st">"…"</span>}
-      (<span class="kw">let</span> [source (<span class="hl">agent--extract-source content</span>)]  <span class="cm">;; ← ③ 提取</span>
-        (<span class="kw">if</span> (nil? source) {:text content}
-          {:source source :text content}))))`,
-  extract: `(<span class="kw">defn</span> <span class="fn">agent--extract-source</span> [text]
-  <span class="cm">;; 第一对 \`\`\` 围栏之间的内容是程序；没有围栏的回复</span>
-  <span class="cm">;; 不是程序 —— 循环把它当一轮失败，而不是硬跑。</span>
-  (<span class="kw">let</span> [parts (<span class="fn">str-split</span> <span class="st">"\`\`\`"</span> text)]
-    (<span class="kw">if</span> (&lt; (count parts) 2)
-      nil
-      (<span class="kw">let</span> [block (str-trim (get parts 1 <span class="st">""</span>))
-            lines (<span class="fn">str-split</span> <span class="st">"\\n"</span> block)]
-        <span class="cm">;; 丢掉围栏内的语言标签行（zio / lisp / …）</span>
-        (<span class="kw">if</span> (and (&gt; (count lines) 1)
-                 (not (str-contains? (get lines 0 <span class="st">""</span>) <span class="st">"("</span>))
-                 (&lt; (count (get lines 0 <span class="st">""</span>)) 20))
-          (str-trim (reduce (fn [acc line]
-            (<span class="kw">if</span> (= acc <span class="st">""</span>) line (<span class="kw">str</span> acc <span class="st">"\\n"</span> line))) <span class="st">""</span> (rest lines)))
-          block)))))`,
-  execute: `(<span class="kw">defn</span> <span class="fn">harness-execute-zio</span> [source]        <span class="cm">;; ← ② 隔离执行</span>
-  (<span class="kw">let*</span> […
-         staged (agent--stage-candidate run-dir source)]
-    (<span class="kw">try</span>
-      (<span class="kw">let</span> [proc (<span class="hl">host/process-start</span>
-                  {:executable zio-bin
-                   :argv [<span class="st">"--emit-framed"</span> <span class="st">"--step-limit"</span> <span class="st">"1000000"</span>
-                          <span class="st">"--timeout-ms"</span> <span class="st">"60000"</span> jail-path]
-                   :cwd <span class="st">"/scratch"</span> :scratch scratch
-                   :timeout-ms 60000 :max-cpu-seconds 300 :max-processes 64})
-             frame (<span class="hl2">agent--read-frame proc deadline</span>)]   <span class="cm">;; ← 读信封</span>
-        (host/process-kill proc)
-        (outcome-of frame))
-      (<span class="kw">catch</span> any
-        <span class="cm">;; 无 namespace 的宿主在这里诚实拒绝：</span>
-        {:status <span class="st">"failed"</span> :error (<span class="kw">str</span> *error*) :output <span class="st">""</span>}))))`,
-  feedback: `(<span class="kw">defn</span> <span class="fn">feedback-of</span> [outcome]             <span class="cm">;; ← ④ 失败即证据</span>
-  <span class="cm">;; 错误整条携带，不摘要：看到转述的修订是在猜。</span>
-  {:status (get outcome :status <span class="st">"failed"</span>)
-   :error  (get outcome :error <span class="st">"no error detail was reported"</span>)
-   :turns  (get outcome :turns 0)})`,
-  stop: `(<span class="kw">if</span> (= (get outcome :status <span class="st">"failed"</span>) <span class="st">"completed"</span>)
-  {:status <span class="st">"candidate"</span>            <span class="cm">;; ← ⑤a 成功：成为候选</span>
-   :turns (+ turn 1)
-   :execution outcome}
-  (<span class="kw">recur</span> …))                        <span class="cm">;; 或下一轮</span>
+  loop: `(<span class="cm">;; 循环只认行为表:决定"下一步做什么"的每个判定</span>
+<span class="cm">;; 都是表里的一项,宿主在组装时决定,循环无法自扩大。</span>
+(<span class="kw">defn</span> <span class="fn">agent-run</span> [task behavior]
+  (<span class="kw">let*</span> [b (<span class="kw">if</span> (<span class="fn">map?</span> behavior) behavior {})
+         <span class="hl">complete</span>  (<span class="fn">get</span> b <span class="st">:complete</span> nil)   <span class="cm">;; ← ① 问模型(必填)</span>
+         <span class="hl">execute</span>   (<span class="fn">get</span> b <span class="st">:execute</span> nil)    <span class="cm">;; ← ② 隔离执行(必填)</span>
+         max-turns (<span class="fn">get</span> b <span class="st">:max-turns</span> 3)
+         extract   (<span class="fn">get</span> b <span class="st">:extract</span> source-of)
+         revise    (<span class="fn">get</span> b <span class="st">:revise</span> feedback-of)
+         <span class="hl2">candidate?</span> (<span class="fn">get</span> b <span class="st">:candidate?</span> agent--completed?)]
+    (<span class="kw">loop</span> [turn 0 feedback nil]
+      (<span class="kw">if</span> (&gt;= turn max-turns)
+        {:status <span class="st">"exhausted"</span> :turns turn :last feedback}
+        (<span class="kw">let*</span> [reply (<span class="hl2"><span class="fn">complete</span> task feedback)</span>
+               source (extract reply)
+               outcome (<span class="kw">if</span> (nil? source)
+                         {:status <span class="st">"failed"</span> :error <span class="st">"…no source…"</span>}
+                         (<span class="hl"><span class="fn">execute</span> source)</span>)]
+          (<span class="kw">if</span> (<span class="hl2"><span class="fn">candidate?</span> outcome)</span>
+            {:status <span class="st">"candidate"</span> :turns (+ turn 1) :execution outcome}
+            (<span class="kw">recur</span> (+ turn 1) (revise outcome))))))))`,
+  complete: `(<span class="cm">;; 行为表在应用侧组装(candidate.zio 提供参考绑定)。</span>
+<span class="cm">;; API key 只以环境变量"名字" travels——绑定内部经 host/getenv</span>
+<span class="cm">;; 读取,名字之外的东西进不了行为表。</span>
+(<span class="kw">def</span> <span class="fn">behavior</span>
+  {:complete (<span class="hl"><span class="fn">make-complete-binding</span></span>
+               {:base-url <span class="st">"…"</span> :model <span class="st">"…"</span>
+                <span class="hl2">:api-key-env</span> <span class="st">"LOOM_LLM_API_KEY"</span>})
+   :execute  (<span class="fn">make-execute-binding</span> {:zio-bin <span class="st">"…"</span> :scratch <span class="st">"…"</span>})
+   :max-turns 3})
 
-<span class="cm">;; turn 上限（宿主给的 3）到达时：</span>
+(<span class="fn">agent-run</span> task behavior)`,
+  extract: `(<span class="cm">;; agent.zio — source-of:第一对 \`\`\` 围栏之间的内容是程序;</span>
+<span class="cm">;; 没有围栏的回复不是程序 —— 循环把它当一轮失败,而不是硬跑。</span>
+(<span class="kw">defn</span> <span class="fn">source-of</span> [reply]
+  (<span class="kw">let*</span> [source (<span class="fn">get</span> reply <span class="st">:source</span> <span class="st">""</span>)]
+    (<span class="kw">if</span> (= source <span class="st">""</span>)
+      nil
+      source)))
+
+<span class="cm">;; 围栏解析在 candidate.zio(candidate--fence-span 等,</span>
+<span class="cm">;; 私有以 -- 分隔;公共 API 裸名导出)。</span>`,
+  execute: `(<span class="cm">;; candidate.zio — make-execute-binding:返回的闭包把源码</span>
+<span class="cm">;; 写进数据根的 agent/ 目录,在 Linux namespace jail 里执行。</span>
+(<span class="kw">defn</span> <span class="fn">make-execute-binding</span> [config]        <span class="cm">;; ← ② 隔离执行</span>
+  (<span class="kw">fn</span> [source]
+    (<span class="kw">let*</span> […
+           staged (host/write-atomic (str host-dir <span class="st">"/candidate.zio"</span>)
+                    (host/bytes-utf8 source))]
+      (<span class="kw">try</span>
+        (<span class="kw">let</span> [proc (<span class="hl">host/process-start</span>
+                    {:executable zio-bin
+                     :argv [<span class="st">"--emit-framed"</span> <span class="st">"--step-limit"</span> <span class="st">"1000000"</span>
+                            <span class="st">"--timeout-ms"</span> <span class="st">"60000"</span> jail-path]
+                     :cwd jail-scratch :scratch scratch
+                     :timeout-ms 60000 :max-cpu-seconds 300 :max-processes 64})
+               frame (<span class="hl2">candidate--read-frame proc deadline</span>)]   <span class="cm">;; ← 读信封</span>
+          (host/process-kill proc)
+          (candidate--outcome-of frame))
+        (<span class="kw">catch</span> any
+          <span class="cm">;; 无 namespace 的宿主在这里诚实拒绝:</span>
+          {:status <span class="st">"failed"</span> :error (<span class="kw">str</span> *error*) :output <span class="st">""</span>})))))`,
+  feedback: `(<span class="cm">;; agent.zio — feedback-of:失败即证据。</span>
+<span class="cm">;; 错误整条携带,不摘要:看到转述的修订是在猜。</span>
+(<span class="kw">defn</span> <span class="fn">feedback-of</span> [outcome]
+  {:status (<span class="fn">get</span> outcome <span class="st">:status</span> <span class="st">"failed"</span>)
+   :error  (<span class="fn">get</span> outcome <span class="st">:error</span> <span class="st">"no error detail was reported"</span>)
+   :turns  (<span class="fn">get</span> outcome <span class="st">:turns</span> 0)})`,
+  stop: `(<span class="cm">;; 默认的"什么算候选":执行结果 status = "completed"。</span>
+<span class="cm">;; 行为表可以覆盖这个判定(candidate? 项)。</span>
+(<span class="kw">def</span> <span class="fn">agent--completed?</span>
+  (<span class="kw">fn</span> [outcome] (= (<span class="fn">get</span> outcome <span class="st">:status</span> <span class="st">"failed"</span>) <span class="st">"completed"</span>)))
+
+<span class="cm">;; turn 上限(行为表里的 :max-turns,宿主传进来的)到达时:</span>
 {:status <span class="st">"exhausted"</span> :turns 3 :last feedback}
 <span class="cm">;; 拒绝所有候选也是有效结果 —— 必须展示真实提议与实验。</span>`,
 };
 
 const FILES = {
   loop:   ['libs/loom/agent.zio — agent-run', '循环判定'],
-  complete:['agent.zio — harness-complete', '问模型'],
-  extract:['agent.zio — agent--extract-source', '提取程序'],
-  execute:['agent.zio — harness-execute-zio', '隔离执行'],
+  complete:['libs/loom/candidate.zio — make-complete-binding', '问模型'],
+  extract:['libs/loom/agent.zio — source-of', '提取程序'],
+  execute:['libs/loom/candidate.zio — make-execute-binding', '隔离执行'],
   feedback:['libs/loom/agent.zio — feedback-of', '失败证据'],
-  stop:   ['libs/loom/agent.zio — 停止与候选', '判定'],
+  stop:   ['libs/loom/agent.zio — agent--completed?', '判定'],
 };
 
 /* 模型脚本：与仓库 mock provider 一致（先坏后好） */
@@ -750,7 +891,7 @@ feedback = nil           ; 首轮没有失败证据`}`)}</pre>`);
       const prompt = fb
         ? `Your previous program failed to execute.\n\nTask: 计算 21 的两倍…\n\nExecution report: status=${fb.status} error=${esc(fb.error).slice(0,60)}…\n\nWrite a corrected, complete program…`
         : `Write a complete, self-contained Zio program…\n\nTask: 计算 21 的两倍并打印结果`;
-      addStage('model', `harness-complete · turn ${turn}`, 'ASK',
+      addStage('model', `complete · turn ${turn}`, 'ASK',
         `<div style="color:var(--muted);font-size:12.5px;margin-bottom:6px">发给模型的 prompt（首行）：</div>
          <pre class="code">${esc(prompt.slice(0, 160))}${prompt.length>160?'…':''}</pre>`);
       S.step = 2; break;
@@ -869,6 +1010,219 @@ document.getElementById('btnRun').onclick = () => {
 };
 document.getElementById('btnReset').onclick = reset;
 reset();
+
+/* ── 03 运行状态:真实 /api/health,不由页面模拟 ────────────────── */
+async function pollStatus() {
+  const set = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  // loom 控制台:CORS 由 serve 对 GET /api/health 显式授予本页来源。
+  try {
+    const r = await fetch('https://loom.lszio.space/api/health', {cache: 'no-store'});
+    const d = await r.json();
+    document.getElementById('dLoom').className = 'dot ok';
+    set('loomStatus', d.status ?? '?');
+    set('loomTeach', d.teach ? '开启' : '未授予');
+    set('loomCursor', String(d['trace-cursor'] ?? '—'));
+  } catch (e) {
+    document.getElementById('dLoom').className = 'dot down';
+    set('loomStatus', 'unreachable');
+    set('loomTeach', '—'); set('loomCursor', '—');
+  }
+  // grove 控制面:health 免角色;runs/events 需要 reader token。
+  const token = (document.getElementById('groveToken').value || '').trim();
+  try {
+    const r = await fetch('https://api.groiz.lszio.space/api/health', {cache: 'no-store'});
+    const d = await r.json();
+    document.getElementById('dGrove').className = 'dot ok';
+    set('groveStatus', d.status ?? '?');
+    set('groveUptime', d.uptime_ms != null ? Math.round(d.uptime_ms / 1000) + 's' : '—');
+    set('groveRuns', String(d.runs ?? '—'));
+  } catch (e) {
+    document.getElementById('dGrove').className = 'dot down';
+    set('groveStatus', 'unreachable');
+    set('groveUptime', '—'); set('groveRuns', '—');
+  }
+  const runsView = document.getElementById('runsView');
+  const dRuns = document.getElementById('dRuns');
+  if (!token) {
+    dRuns.className = 'dot';
+    runsView.textContent = '填入 token 后这里显示运行台账。不带 token 时:认证被拒绝是权限模型在工作,不是故障。';
+  } else {
+    try {
+      const r = await fetch('https://api.groiz.lszio.space/api/runs', {headers: {Authorization: 'Bearer ' + token}});
+      if (!r.ok) {
+        dRuns.className = 'dot down';
+        runsView.textContent = '认证被拒绝(' + r.status + ')——权限模型在工作。';
+      } else {
+        const runs = await r.json();
+        dRuns.className = 'dot ok';
+        runsView.textContent = runs.length
+          ? runs.map(x => `${x.id}: ${x.state} ${x.steps_consumed}/${x.steps_budget}`).join('\n')
+          : '(当前没有运行)';
+      }
+    } catch (e) { dRuns.className = 'dot down'; runsView.textContent = 'unreachable'; }
+  }
+}
+document.getElementById('groveToken').addEventListener('change', pollStatus);
+pollStatus();
+setInterval(pollStatus, 8000);
+
+/* ── 04 函数执行实况:教学端口的落地页消费者 ─────────────────────
+   REPLAY = 一次真实离线运行的 trace(嵌入式,诚实标注);
+   LIVE   = 轮询 loom 控制台 GET /api/trace 的游标接口。
+   源码高亮的数据是 agent.zio 的真实文本;面板只渲染,不执行任何东西。 */
+const PHASES = [
+  ['complete', 'ask', 'p-ask', 't-ask'],
+  ['extract', 'extract', 'p-extract', 't-extract'],
+  ['execute', 'execute', 'p-exec', 't-exec'],
+  ['candidate?', 'check', 'p-check', 't-check'],
+  ['revise', 'revise', 'p-revise', 't-revise'],
+];
+function phaseOf(name) { for (const p of PHASES) if (p[0] === name) return p; return null; }
+
+const REPLAY = {"cursor":2847,"dropped":0,"events":[{"args":["{complete #<function> execute #<function> max-turns 2}"],"col":17,"depth":4,"kind":"call","line":80,"module":"agent.zio","name":"map?","seq":2581,"tail":false,"truncated":false},{"args":["{complete #<function> execute #<function> max-turns 2}","complete","nil"],"col":20,"depth":4,"kind":"call","line":81,"module":"agent.zio","name":"get","seq":2582,"tail":false,"truncated":false},{"args":["#<function>"],"col":25,"depth":4,"kind":"call","line":82,"module":"agent.zio","name":"fn?","seq":2583,"tail":false,"truncated":false},{"args":["{complete #<function> execute #<function> max-turns 2}","execute","nil"],"col":19,"depth":4,"kind":"call","line":84,"module":"agent.zio","name":"get","seq":2584,"tail":false,"truncated":false},{"args":["#<function>"],"col":24,"depth":4,"kind":"call","line":85,"module":"agent.zio","name":"fn?","seq":2585,"tail":false,"truncated":false},{"args":["{complete #<function> execute #<function> max-turns 2}","max-turns","3"],"col":21,"depth":4,"kind":"call","line":87,"module":"agent.zio","name":"get","seq":2586,"tail":false,"truncated":false},{"args":["{complete #<function> execute #<function> max-turns 2}","extract","#<function>"],"col":19,"depth":4,"kind":"call","line":88,"module":"agent.zio","name":"get","seq":2587,"tail":false,"truncated":false},{"args":["{complete #<function> execute #<function> max-turns 2}","revise","#<function>"],"col":18,"depth":4,"kind":"call","line":89,"module":"agent.zio","name":"get","seq":2588,"tail":false,"truncated":false},{"args":["{complete #<function> execute #<function> max-turns 2}","candidate?","#<function>"],"col":22,"depth":4,"kind":"call","line":90,"module":"agent.zio","name":"get","seq":2589,"tail":false,"truncated":false},{"args":["{complete #<function> execute #<function> max-turns 2}","price","nil"],"col":17,"depth":4,"kind":"call","line":91,"module":"agent.zio","name":"get","seq":2590,"tail":false,"truncated":false},{"args":["0","2"],"col":12,"depth":4,"kind":"call","line":93,"module":"agent.zio","name":">=","seq":2591,"tail":false,"truncated":false},{"args":["\"print the sum 1..10\"","nil"],"col":23,"depth":4,"kind":"call","line":97,"module":"agent.zio","name":"complete","seq":2592,"tail":false,"truncated":false},{"args":["{source \"(println 42)\" text \"{\"source\": \"(println 42)\"}\"}"],"col":24,"depth":4,"kind":"call","line":98,"module":"agent.zio","name":"extract","seq":2681,"tail":false,"truncated":false},{"args":["{source \"(println 42)\" text \"{\"source\": \"(println 42)\"}\"}","source","\"\""],"col":18,"depth":5,"kind":"call","line":47,"module":"agent.zio","name":"get","seq":2682,"tail":false,"truncated":false},{"args":["\"(println 42)\"","\"\""],"col":10,"depth":5,"kind":"call","line":48,"module":"agent.zio","name":"=","seq":2683,"tail":false,"truncated":false},{"args":["\"(println 42)\""],"col":29,"depth":4,"kind":"call","line":99,"module":"agent.zio","name":"nil?","seq":2684,"tail":false,"truncated":false},{"args":["\"(println 42)\""],"col":27,"depth":4,"kind":"call","line":102,"module":"agent.zio","name":"execute","seq":2685,"tail":false,"truncated":false},{"args":["nil"],"col":30,"depth":4,"kind":"call","line":103,"module":"agent.zio","name":"nil?","seq":2702,"tail":false,"truncated":false},{"args":["{error \"capability-denied: process isolation requires Linux namespaces at line 265, col 21\" output \"\" status \"failed\"}"],"col":16,"depth":4,"kind":"call","line":104,"module":"agent.zio","name":"candidate?","seq":2703,"tail":false,"truncated":false},{"args":["{error \"capability-denied: process isolation requires Linux namespaces at line 265, col 21\" output \"\" status \"failed\"}","status","\"failed\""],"col":42,"depth":5,"kind":"call","line":65,"module":"agent.zio","name":"get","seq":2704,"tail":false,"truncated":false},{"args":["\"failed\"","\"completed\""],"col":39,"depth":5,"kind":"call","line":65,"module":"agent.zio","name":"=","seq":2705,"tail":true,"truncated":false},{"args":["0","1"],"col":21,"depth":4,"kind":"call","line":108,"module":"agent.zio","name":"+","seq":2706,"tail":false,"truncated":false},{"args":["{error \"capability-denied: process isolation requires Linux namespaces at line 265, col 21\" output \"\" status \"failed\"}"],"col":32,"depth":4,"kind":"call","line":108,"module":"agent.zio","name":"revise","seq":2707,"tail":false,"truncated":false},{"args":["{error \"capability-denied: process isolation requires Linux namespaces at line 265, col 21\" output \"\" status \"failed\"}","error","\"no error detail was reported\""],"col":12,"depth":5,"kind":"call","line":59,"module":"agent.zio","name":"get","seq":2708,"tail":false,"truncated":false},{"args":["{error \"capability-denied: process isolation requires Linux namespaces at line 265, col 21\" output \"\" status \"failed\"}","turns","0"],"col":12,"depth":5,"kind":"call","line":60,"module":"agent.zio","name":"get","seq":2709,"tail":false,"truncated":false},{"args":["{error \"capability-denied: process isolation requires Linux namespaces at line 265, col 21\" output \"\" status \"failed\"}","status","\"failed\""],"col":13,"depth":5,"kind":"call","line":58,"module":"agent.zio","name":"get","seq":2710,"tail":false,"truncated":false},{"args":["1","2"],"col":12,"depth":4,"kind":"call","line":93,"module":"agent.zio","name":">=","seq":2711,"tail":false,"truncated":false},{"args":["\"print the sum 1..10\"","{error \"capability-denied: process isolation requires Linux namespaces at line 265, col 21\" status \"failed\" turns 0}"],"col":23,"depth":4,"kind":"call","line":97,"module":"agent.zio","name":"complete","seq":2712,"tail":false,"truncated":false},{"args":["{source \"(println 42)\" text \"{\"source\": \"(println 42)\"}\"}"],"col":24,"depth":4,"kind":"call","line":98,"module":"agent.zio","name":"extract","seq":2817,"tail":false,"truncated":false},{"args":["{source \"(println 42)\" text \"{\"source\": \"(println 42)\"}\"}","source","\"\""],"col":18,"depth":5,"kind":"call","line":47,"module":"agent.zio","name":"get","seq":2818,"tail":false,"truncated":false},{"args":["\"(println 42)\"","\"\""],"col":10,"depth":5,"kind":"call","line":48,"module":"agent.zio","name":"=","seq":2819,"tail":false,"truncated":false},{"args":["\"(println 42)\""],"col":29,"depth":4,"kind":"call","line":99,"module":"agent.zio","name":"nil?","seq":2820,"tail":false,"truncated":false},{"args":["\"(println 42)\""],"col":27,"depth":4,"kind":"call","line":102,"module":"agent.zio","name":"execute","seq":2821,"tail":false,"truncated":false},{"args":["nil"],"col":30,"depth":4,"kind":"call","line":103,"module":"agent.zio","name":"nil?","seq":2838,"tail":false,"truncated":false},{"args":["{error \"capability-denied: process isolation requires Linux namespaces at line 265, col 21\" output \"\" status \"failed\"}"],"col":16,"depth":4,"kind":"call","line":104,"module":"agent.zio","name":"candidate?","seq":2839,"tail":false,"truncated":false},{"args":["{error \"capability-denied: process isolation requires Linux namespaces at line 265, col 21\" output \"\" status \"failed\"}","status","\"failed\""],"col":42,"depth":5,"kind":"call","line":65,"module":"agent.zio","name":"get","seq":2840,"tail":false,"truncated":false},{"args":["\"failed\"","\"completed\""],"col":39,"depth":5,"kind":"call","line":65,"module":"agent.zio","name":"=","seq":2841,"tail":true,"truncated":false},{"args":["1","1"],"col":21,"depth":4,"kind":"call","line":108,"module":"agent.zio","name":"+","seq":2842,"tail":false,"truncated":false},{"args":["{error \"capability-denied: process isolation requires Linux namespaces at line 265, col 21\" output \"\" status \"failed\"}"],"col":32,"depth":4,"kind":"call","line":108,"module":"agent.zio","name":"revise","seq":2843,"tail":false,"truncated":false},{"args":["{error \"capability-denied: process isolation requires Linux namespaces at line 265, col 21\" output \"\" status \"failed\"}","error","\"no error detail was reported\""],"col":12,"depth":5,"kind":"call","line":59,"module":"agent.zio","name":"get","seq":2844,"tail":false,"truncated":false},{"args":["{error \"capability-denied: process isolation requires Linux namespaces at line 265, col 21\" output \"\" status \"failed\"}","turns","0"],"col":12,"depth":5,"kind":"call","line":60,"module":"agent.zio","name":"get","seq":2845,"tail":false,"truncated":false},{"args":["{error \"capability-denied: process isolation requires Linux namespaces at line 265, col 21\" output \"\" status \"failed\"}","status","\"failed\""],"col":13,"depth":5,"kind":"call","line":58,"module":"agent.zio","name":"get","seq":2846,"tail":false,"truncated":false},{"args":["2","2"],"col":12,"depth":4,"kind":"call","line":93,"module":"agent.zio","name":">=","seq":2847,"tail":false,"truncated":false}],"task":"print the sum 1..10","result":{"error":null,"output":null,"status":"exhausted","turns":2}};
+const SOURCES = { 'agent.zio': ";; ── zio.agent — the agent's own decision logic, in Zio ─────────────\n;;\n;; This module decides — route, validate, revise, stop — and the things\n;; it cannot do itself arrive as a BEHAVIOR TABLE: one per-session map\n;; of decision points, passed in as a parameter (spec §3 L1). No free\n;; variables, no `set!`-installed globals: the loop's behavior is\n;; readable from its argument, and swapping a decision point happens at\n;; a turn boundary by passing a different map.\n;;\n;;   :complete   (fn [task feedback]) → reply map. Required. How to ask\n;;               the model; reference: candidate/make-complete-binding.\n;;   :execute    (fn [source]) → outcome map with :status. Required.\n;;               How to run a candidate; reference:\n;;               candidate/make-execute-binding.\n;;   :extract    (fn [reply]) → source or nil. What counts as a program\n;;               in a reply. Default: source-of.\n;;   :revise     (fn [outcome]) → the feedback map the next turn sees.\n;;               Default: feedback-of.\n;;   :candidate? (fn [outcome]) → does this outcome end the loop as a\n;;               candidate. Default: an outcome whose :status is\n;;               \"completed\".\n;;   :price      (fn [turn reply outcome]) → metering hook, called once\n;;               per turn after execution. A host wires its budget\n;;               ledger here; the loop itself never prices.\n;;   :max-turns  the turn ceiling. The host also meters calls\n;;               independently — a program cannot grant itself more\n;;               turns than the grant allows.\n;;\n;; The split is the point. This file decides *when* to ask the model\n;; and *what* to do with the answer; the behavior decides what a model\n;; call costs, what a program is allowed to reach, and how long it may\n;; run. Required keys are refused, not defaulted: a behavior that\n;; cannot say how to ask or how to run is not a behavior.\n\n;; A reply with no source is not a program. Treating it as one would\n;; hand the host an empty string and report whatever the sandbox said\n;; about it, which reads like a result about the model's code when the\n;; model never wrote any.\n;;\n;; Both reference bindings return keyword-keyed maps — that is the Zio\n;; map convention, and reading them with string keys returns the\n;; default every time, which is how a failed turn ends up looking like\n;; it carried no error at all.\n;; doc: (source-of reply) — extracts the model's program source string from a\n;; doc: reply map, or nil when the reply carries no :source. Reads keyword keys only.\n(defn source-of [reply]\n  (let* [source (get reply :source \"\")]\n    (if (= source \"\")\n      nil\n      source)))\n\n;; The feedback the next turn sees. The error is carried whole, not\n;; summarized: a revision that is shown a paraphrase of why it failed\n;; is a revision guessing.\n;; doc: (feedback-of outcome) — builds the feedback map the next turn sees from an\n;; doc: execute outcome: {:status :error :turns}. The error text is carried whole.\n(defn feedback-of [outcome]\n  {:status (get outcome :status \"failed\")\n   :error (get outcome :error \"no error detail was reported\")\n   :turns (get outcome :turns 0)})\n\n;; The default \"what is a candidate\" decision: an execution outcome\n;; whose status is \"completed\". A behavior overrides this to widen or\n;; narrow what ends the loop.\n(def agent--completed? (fn [outcome] (= (get outcome :status \"failed\") \"completed\")))\n\n;; Run the agent loop.\n;;\n;; `max-turns` in the behavior is the ceiling the host passed in from\n;; the grant, not a number this function decided: the call count is\n;; also metered there, so a program that ignored this argument would\n;; still be stopped.\n;; doc: (agent-run task behavior) — the agent loop over a behavior table\n;; doc: {:complete :execute :extract :revise :candidate? :price :max-turns}.\n;; doc: Returns {:status \"candidate\" :turns :execution} on success or\n;; doc: {:status \"exhausted\" :turns :last} when the ceiling is hit.\n;; doc: :complete and :execute are required; the loop refuses a behavior\n;; doc: that cannot ask or cannot run.\n(defn agent-run [task behavior]\n  (let* [b (if (map? behavior) behavior {})\n         complete (get b :complete nil)\n         _complete (if (fn? complete) true\n                     (error \"loom: agent behavior requires :complete (fn [task feedback])\"))\n         execute (get b :execute nil)\n         _execute (if (fn? execute) true\n                    (error \"loom: agent behavior requires :execute (fn [source])\"))\n         max-turns (get b :max-turns 3)\n         extract (get b :extract source-of)\n         revise (get b :revise feedback-of)\n         candidate? (get b :candidate? agent--completed?)\n         price (get b :price nil)]\n    (loop [turn 0 feedback nil]\n      (if (>= turn max-turns)\n        {:status \"exhausted\"\n         :turns turn\n         :last feedback}\n        (let* [reply (complete task feedback)\n               source (extract reply)\n               outcome (if (nil? source)\n                         {:status \"failed\"\n                          :error \"the model returned no source to execute\"}\n                         (execute source))\n               _metered (if (nil? price) true (price turn reply outcome))]\n          (if (candidate? outcome)\n            {:status \"candidate\"\n             :turns (+ turn 1)\n             :execution outcome}\n            (recur (+ turn 1) (revise outcome))))))))\n\n\n(export agent-run source-of feedback-of)\n" };
+const LIVE_BASE = 'https://loom.lszio.space';
+
+let mode = 'replay';
+let events = [];
+let cursor = null, dropped = 0;
+let selectedSeq = null;
+let liveTimer = null;
+
+function latestCall() {
+  for (let i = events.length - 1; i >= 0; i--) if (events[i].kind === 'call') return events[i];
+  return null;
+}
+
+function renderLiveSrc() {
+  const pane = document.getElementById('liveSrc');
+  const current = latestCall();
+  if (!events.length) { pane.innerHTML = '<span class="ln" style="color:var(--muted);padding-left:12px">(没有事件)</span>'; return; }
+  const module = current ? String(current.module).split('/').pop() : null;
+  const source = module ? SOURCES[module] : null;
+  if (source == null) { pane.innerHTML = `<span class="ln" style="color:var(--muted);padding-left:12px">(源码未嵌入: ${module ?? '—'})</span>`; return; }
+  const lines = source.split('\n');
+  const curLine = current && String(current.module).endsWith(module) ? current.line : 0;
+  const from = Math.max(0, (curLine || 1) - 16), to = Math.min(lines.length, (curLine || 1) + 26);
+  let html = '';
+  for (let i = from; i < to; i++) {
+    const cur = (i + 1 === curLine);
+    const text = (lines[i] ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;');
+    html += `<span class="ln${cur ? ' cur' : ''}" id="srcline${i + 1}"><span class="no">${i + 1}</span>${text}</span>`;
+  }
+  pane.innerHTML = html;
+  const el = document.getElementById('srcline' + curLine);
+  if (el) el.scrollIntoView({block: 'center'});
+}
+
+function renderLiveStack() {
+  const stack = document.getElementById('liveStack');
+  const tail = events.slice(-120);
+  const minDepth = tail.length ? Math.min(...tail.map(e => e.depth)) : 0;
+  stack.textContent = '';
+  for (const ev of tail) {
+    const div = document.createElement('div');
+    div.className = 'ev' + (ev.kind === 'return' ? ' ret' : '') + (ev.seq === selectedSeq ? ' cur' : '');
+    div.style.paddingLeft = (6 + Math.max(0, ev.depth - minDepth) * 14) + 'px';
+    if (ev.kind === 'return') div.textContent = '↩ ' + ev.value;
+    else {
+      const nm = document.createElement('span'); nm.className = 'nm';
+      nm.textContent = ev.name + (ev.tail ? ' ⁽ᵗ⁾' : '');
+      const ar = document.createElement('span'); ar.className = 'ar';
+      ar.textContent = ' ' + (ev.args.length ? ev.args.join(' ') : '()');
+      div.appendChild(nm); div.appendChild(ar);
+      if (ev.truncated) { const t = document.createElement('span'); t.className = 'tr'; t.textContent = ' ⋯'; div.appendChild(t); }
+    }
+    div.title = `#${ev.seq} ${ev.module}:${ev.line}:${ev.col}`;
+    div.addEventListener('click', () => { selectedSeq = ev.seq; renderLiveAll(); });
+    stack.appendChild(div);
+  }
+  stack.scrollTop = stack.scrollHeight;
+}
+
+function renderLivePhases() {
+  const bar = document.getElementById('livePhases');
+  bar.textContent = '';
+  const named = events.filter(e => e.kind === 'call' && phaseOf(e.name)).slice(-10);
+  for (const ev of named) {
+    const ph = phaseOf(ev.name);
+    const el = document.createElement('span');
+    el.className = 'ph ' + ph[2];
+    el.textContent = ph[1] + (ev.tail ? ' ↺' : '');
+    el.title = `#${ev.seq} ${ev.name} line ${ev.line}`;
+    el.addEventListener('click', () => { selectedSeq = ev.seq; renderLiveAll(); });
+    bar.appendChild(el);
+  }
+  if (!named.length) { const el = document.createElement('span'); el.className = 'ph'; el.textContent = '—'; bar.appendChild(el); }
+}
+
+function renderLiveTimeline() {
+  const tl = document.getElementById('liveTimeline');
+  tl.textContent = '';
+  for (const ev of events.slice(-160)) {
+    const tick = document.createElement('span');
+    const ph = ev.kind === 'call' ? phaseOf(ev.name) : null;
+    tick.className = 'tick ' + (ph ? ph[3] : 't-other');
+    tick.style.height = ev.kind === 'call' ? (4 + Math.min(10, (ev.args || []).join(' ').length / 24)) + 'px' : '2px';
+    tick.title = `#${ev.seq} ${ev.kind} ${ev.name ?? ''}`;
+    tick.addEventListener('click', () => { selectedSeq = ev.seq; renderLiveAll(); });
+    tl.appendChild(tick);
+  }
+}
+
+function renderLiveAll() { renderLiveSrc(); renderLiveStack(); renderLivePhases(); renderLiveTimeline(); renderLiveStat(); }
+
+function renderLiveStat() {
+  const stat = document.getElementById('liveStat');
+  const note = document.getElementById('liveNote');
+  if (mode === 'replay') {
+    const r = REPLAY.result ?? {};
+    stat.textContent = `离线运行 · ${events.length} 事件 · status ${r.status ?? '—'} · turns ${r.turns ?? '—'}`;
+    note.textContent = 'REPLAY:' + (REPLAY.task ?? '') + ' — 一次真实离线运行的 trace(mock 上游,macOS 无 namespace,jail 以 capability-denied 诚实拒绝候选执行,循环把失败当证据修订了两轮,耗尽 turn 上限)。源码与事件都来自仓库当前版本。点击任意事件回看那一行。';
+  } else {
+    stat.textContent = `LIVE 轮询 · ${events.length} 事件 · cursor ${cursor ?? '—'}` + (dropped > 0 ? ` · dropped ${dropped}` : '');
+    note.textContent = 'LIVE:每 600ms 轮询 loom 控制台的 GET /api/trace(游标合同与 grove /api/events 相同)。去 loom.lszio.space 的控制台点一次 run,这里就会出现那次循环的函数执行实况。';
+  }
+}
+
+async function pollLive() {
+  if (mode !== 'live') return;
+  try {
+    const url = cursor === null ? LIVE_BASE + '/api/trace' : LIVE_BASE + '/api/trace?after=' + cursor;
+    const r = await fetch(url, {cache: 'no-store'});
+    if (!r.ok) return;
+    const d = await r.json();
+    dropped = d.dropped ?? dropped;
+    if (d.events && d.events.length) {
+      for (const ev of d.events) events.push(ev);
+      if (events.length > 4000) events = events.slice(-3000);
+      cursor = d.cursor;
+      selectedSeq = null;
+      renderLiveAll();
+    } else if (cursor === null) { cursor = d.cursor ?? 0; renderLiveStat(); }
+  } catch (e) { /* 网络抖动:下一次轮询继续 */ }
+}
+
+function setMode(m) {
+  mode = m;
+  document.getElementById('mReplay').className = m === 'replay' ? 'on' : '';
+  document.getElementById('mLive').className = m === 'live' ? 'on' : '';
+  if (liveTimer) { clearInterval(liveTimer); liveTimer = null; }
+  if (m === 'replay') {
+    events = REPLAY.events.slice();
+    cursor = REPLAY.cursor; dropped = REPLAY.dropped ?? 0;
+    selectedSeq = null;
+    renderLiveAll();
+  } else {
+    events = []; cursor = null; dropped = 0; selectedSeq = null;
+    renderLiveAll();
+    pollLive();
+    liveTimer = setInterval(pollLive, 600);
+  }
+}
+document.getElementById('mReplay').onclick = () => setMode('replay');
+document.getElementById('mLive').onclick = () => setMode('live');
+setMode('replay');
 </script>
 </body>
 </html>

@@ -576,7 +576,7 @@ makes, not you.";
 /// logic does not expect.
 ///
 /// This is the Rust mirror of the canonical extraction in
-/// `libs/loom/candidate.zio` (`loom--candidate-extract`); the case
+/// `libs/loom/candidate.zio` (`candidate-extract`); the case
 /// tables in the tests below and in
 /// `zio/langs/cli/tests/libs/candidate.zio` are kept identical — that
 /// 对拍 across the two implementations, not either alone, is the

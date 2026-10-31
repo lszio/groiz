@@ -61,15 +61,19 @@
 
 ;; The bounded-agent entry the generic runner calls. Grove owns the
 ;; dispatch; Loom supplies the reusable loop, and the budget cap is a
-;; keyword the host meters, not a number the candidate chose. The host
-;; bindings `harness-complete` and `harness-execute-zio` are loom's
-;; reference implementations (`libs/loom/candidate.zio`), installed over
-;; host-assembled config: the Rust AgentHost binds them over a loom
-;; session and the sandboxed executor; the launcher path's agent.zio
-;; binds them to the provider config and the launcher's execution grants.
+;; keyword the host meters, not a number the candidate chose. The loop
+;; reads its decisions from an explicit behavior table (spec L1) — it
+;; no longer reads ambient bindings — so the budget must carry what the
+;; behavior is assembled over: the provider config path and the
+;; launcher's execution grants. An entry that cannot name them refuses;
+;; it never inherits whatever a previous caller happened to install.
 (defn agent-entry [task budget]
-  (require :libs.loom.agent :refer [agent-run])
-  (agent-run task (get budget :max_turns 0)))
+  (load "agent.zio")
+  (let [provider (agent--load-provider (get budget :provider_config ""))
+        launcher {:worker-scratch (get budget :worker_scratch "")
+                  :app-share (get budget :app_share "")}]
+    (agent-run task (assoc (agent--behavior provider launcher)
+                       :max-turns (get budget :max_turns 0)))))
 
 ;; ---------- Store open helper ----------
 (defn grove--open-store [root role]

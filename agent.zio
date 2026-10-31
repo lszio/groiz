@@ -2,13 +2,15 @@
 ;;
 ;; libs/loom owns the loop and the bindings' reference implementation:
 ;; libs/loom/agent.zio decides when to ask the model, what counts as a
-;; candidate, when to stop; libs/loom/candidate.zio owns the reply→source
-;; contract (one extraction, one prompt shape — previously this file and
-;; native/app/src/agent.rs each grew their own) and the reference
-;; harness-complete / harness-execute-zio implementations. This file is
-;; assembly only: it loads the provider config the launcher granted,
-;; binds loom's reference implementations to that config and to the
-;; launcher's execution grants, and hands the loop over.
+;; candidate, when to stop — from a BEHAVIOR TABLE passed as data — and
+;; libs/loom/candidate.zio owns the reply→source contract (one
+;; extraction, one prompt shape — previously this file and
+;; native/app/src/agent.rs each grew their own) plus the reference
+;; complete/execute binding factories. This file is assembly only: it
+;; loads the provider config the launcher granted, assembles loom's
+;; behavior table over that config and the launcher's execution grants,
+;; and hands the loop over. The loop reads its decisions from the
+;; argument — there are no ambient bindings to install or clear.
 ;;
 ;; Everything here is trusted application code. The candidate cannot
 ;; reach any of it: its process starts with `env -i`, a scratch dir and
@@ -16,13 +18,8 @@
 
 (load "contracts.zio")
 (load "codec.zio")
-(require :libs.loom.candidate :refer [loom--complete-binding loom--execute-binding])
-
-;; The bindings the loop sees, installed by agent--run before the loop
-;; starts and cleared after. `set!` on a def is load-time trusted code,
-;; not candidate-reachable.
-(def harness-complete nil)
-(def harness-execute-zio nil)
+(require :libs.loom.candidate :refer [make-complete-binding make-execute-binding])
+(require :libs.loom.agent :refer [agent-run])
 
 ;; Runtime defaults for the launcher path. The turn ceiling is also
 ;; metered by the loop; these feed the bindings' config.
@@ -52,44 +49,43 @@
      :temperature (grove--get-key config :temperature (get agent--defaults :temperature))
      :max-tokens (grove--get-key config :maxTokens (get agent--defaults :max-tokens))}))
 
-;; ---------- The run ----------
+;; ---------- The behavior table ----------
 
-(defn agent--run [provider task max-turns launcher]
-  ;; Assembles loom's reference bindings over this launcher's grants:
-  ;; the model endpoint and key name from the provider config, the
-  ;; candidate jail from the launcher's worker-scratch share and ZIO_BIN.
-  ;; The launcher path runs a whole-file program under --emit-framed, so
-  ;; the program-shape instructions say so; the reply format (JSON with a
-  ;; "source" key) is loom's contract, not a per-path choice.
+(defn agent--behavior [provider launcher]
+  ;; Assembles the loop's behavior over this launcher's grants: the
+  ;; model endpoint and key name from the provider config, the
+  ;; candidate jail from the launcher's worker-scratch share and
+  ;; ZIO_BIN. The launcher path runs a whole-file program under
+  ;; --emit-framed, so the program-shape instructions say so; the reply
+  ;; format (JSON with a "source" key) is loom's contract, not a
+  ;; per-path choice. The turn ceiling is added by the caller.
   (let* [zio-bin (try (host/getenv "ZIO_BIN") (catch any nil))
          scratch (get launcher :worker-scratch "")]
     (grove--require (and (not (= zio-bin nil)) (not (= zio-bin ""))) "invalid-input"
                     "candidate execution needs ZIO_BIN (the launcher grants it)")
     (grove--require (not (= scratch "")) "invalid-input"
                     "candidate execution needs the launcher's worker-scratch grant")
-    (set! harness-complete
-          (loom--complete-binding
-           {:base-url (get provider :baseURL "")
-            :model (get provider :model "")
-            :completions (get provider :completions "")
-            :api-key-env (get provider :api-key-env "")
-            :temperature (get provider :temperature nil)
-            :max-tokens (get provider :max-tokens nil)
-            :program-instructions
-            (str "Zio is a Lisp: define functions with defn, end the program "
-                 "with the value to report. The program runs with no libraries "
-                 "and no host access.")}))
-    (set! harness-execute-zio
-          (loom--execute-binding
-           {:zio-bin zio-bin
-            :scratch scratch
-            :app-share (get launcher :app-share "")
-            :step-limit (get agent--defaults :step-limit)
-            :timeout-ms (get agent--defaults :timeout-ms)}))
-    (require :libs.loom.agent :refer [agent-run])
-    (let [result (agent-run task max-turns)]
-      (set! harness-complete nil)
-      (set! harness-execute-zio nil)
-      result)))
+    {:complete
+     (make-complete-binding
+      {:base-url (get provider :baseURL "")
+       :model (get provider :model "")
+       :completions (get provider :completions "")
+       :api-key-env (get provider :api-key-env "")
+       :temperature (get provider :temperature nil)
+       :max-tokens (get provider :max-tokens nil)
+       :program-instructions
+       (str "Zio is a Lisp: define functions with defn, end the program "
+            "with the value to report. The program runs with no libraries "
+            "and no host access.")})
+     :execute
+     (make-execute-binding
+      {:zio-bin zio-bin
+       :scratch scratch
+       :app-share (get launcher :app-share "")
+       :step-limit (get agent--defaults :step-limit)
+       :timeout-ms (get agent--defaults :timeout-ms)})}))
 
-(export agent--load-provider agent--run harness-complete harness-execute-zio)
+(defn agent--run [provider task max-turns launcher]
+  (agent-run task (assoc (agent--behavior provider launcher) :max-turns max-turns)))
+
+(export agent--load-provider agent--behavior agent--run)
