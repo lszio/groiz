@@ -9,7 +9,10 @@
 # commit — and must accept `--app-env`, which is how the launcher grants its
 # token names.
 FROM rust:1-bookworm AS zio-build
-ARG ZIO_REF=main
+# dev is the default: this application tracks the Zio dev branch — the
+# L1 behavior-table agent-run and the libs/loom contracts the groiz app
+# requires land there first. Override with --build-arg to pin a release.
+ARG ZIO_REF=dev
 # libclang is the same build dependency the Zio image needs: zio-js binds
 # QuickJS with rquickjs' `bindgen` feature.
 RUN apt-get update \
