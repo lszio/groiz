@@ -636,8 +636,9 @@
         <h3><span class="dot" id="dGrove"></span>grove 控制面 <span style="color:var(--muted);font-weight:400;font-size:11px">api.groiz.lszio.space</span></h3>
         <div class="sub">学习运行的平台面 — 运行台账 / 事件日志</div>
         <div class="row"><span>status</span><b id="groveStatus">…</b></div>
-        <div class="row"><span>uptime</span><b id="groveUptime">…</b></div>
-        <div class="row"><span>runs</span><b id="groveRuns">…</b></div>
+        <div class="row"><span>schema</span><b id="groveSchema">…</b></div>
+        <div class="row"><span>owner_epoch</span><b id="groveEpoch">…</b></div>
+        <div class="row"><span>scheduler</span><b id="groveSched">…</b></div>
         <div class="row"><span>查看</span><b><a href="https://api.groiz.lszio.space/api/health" target="_blank" rel="noopener" style="color:var(--accent)">health ↗</a></b></div>
       </div>
       <div class="status-card">
@@ -1034,8 +1035,9 @@ async function pollStatus() {
     const d = await r.json();
     document.getElementById('dGrove').className = 'dot ok';
     set('groveStatus', d.status ?? '?');
-    set('groveUptime', d.uptime_ms != null ? Math.round(d.uptime_ms / 1000) + 's' : '—');
-    set('groveRuns', String(d.runs ?? '—'));
+    set('groveSchema', String(d.schema ?? '—'));
+    set('groveEpoch', String(d.owner_epoch ?? '—'));
+    set('groveSched', d.scheduler_failure == null ? '正常' : String(d.scheduler_failure));
   } catch (e) {
     document.getElementById('dGrove').className = 'dot down';
     set('groveStatus', 'unreachable');
