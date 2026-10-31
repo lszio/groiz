@@ -3,24 +3,19 @@
 # language pages) is a separate repository and owns the public origin and
 # the `/wasm/*` bundle; Groiz serves only its own control plane.
 #
-# Zio is fetched from GitHub rather than read out of the build context:
-# this repository is standalone, and a Docker build only ever sees its own
-# directory. ZIO_REF names the revision to build against — a branch, tag or
-# commit — and must accept `--app-env`, which is how the launcher grants its
-# token names.
+# Zio arrives as the `zio/` git submodule (see .gitmodules, branch dev),
+# cloned by the platform with the same GitHub authorization as this
+# repository — an in-build `git clone` would be an anonymous read of a
+# private repository, and no build host is granted one. The submodule
+# pins the exact revision; `git submodule update --remote zio` moves it.
 FROM rust:1-bookworm AS zio-build
-# dev is the default: this application tracks the Zio dev branch — the
-# L1 behavior-table agent-run and the libs/loom contracts the groiz app
-# requires land there first. Override with --build-arg to pin a release.
-ARG ZIO_REF=dev
+WORKDIR /src/zio
+COPY zio /src/zio
 # libclang is the same build dependency the Zio image needs: zio-js binds
 # QuickJS with rquickjs' `bindgen` feature.
 RUN apt-get update \
- && apt-get install -y --no-install-recommends clang libclang-dev git ca-certificates \
+ && apt-get install -y --no-install-recommends clang libclang-dev ca-certificates \
  && rm -rf /var/lib/apt/lists/*
-RUN git clone --filter=blob:none https://github.com/lszio/zio /src/zio \
- && git -C /src/zio checkout "$ZIO_REF"
-WORKDIR /src/zio
 RUN cargo build --release -p zio-cli
 
 FROM python:3.12-slim-bookworm AS worker-venv
