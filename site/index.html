@@ -284,7 +284,7 @@
   .live-bar .mode button.on { background: var(--accent); color: #06281f; font-weight: 600; }
   .live-bar .stat { color: var(--muted); font-size: 12px; }
   .live-main { display: flex; min-height: 380px; }
-  .live-src { flex: 1.15; overflow: auto; border-right: 1px solid var(--line); background: var(--bg); font-size: 12.5px; line-height: 1.5; padding: 10px 0; }
+  .live-src { flex: 1.15; overflow: auto; border-right: 1px solid var(--line); background: var(--bg); font-size: 12.5px; line-height: 1.5; padding: 10px 0; position: relative; }
   .live-src .ln { display: block; padding-right: 10px; white-space: pre; color: #9aa6bd; }
   .live-src .no { display: inline-block; width: 3.4ch; text-align: right; margin-right: 12px; color: #39415a; user-select: none; }
   .live-src .cur { background: rgba(94,234,212,.12); color: var(--text); box-shadow: inset 2px 0 0 var(--accent); }
@@ -1114,7 +1114,12 @@ function renderLiveSrc() {
   }
   pane.innerHTML = html;
   const el = document.getElementById('srcline' + curLine);
-  if (el) el.scrollIntoView({block: 'center'});
+  if (el) {
+    // Pane-relative scroll: scrollIntoView would also scroll the page
+    // itself, yanking the reader to this panel on every render.
+    const pane = document.getElementById('liveSrc');
+    pane.scrollTop = el.offsetTop - pane.clientHeight / 2;
+  }
 }
 
 function renderLiveStack() {
