@@ -33,6 +33,8 @@
     --text: var(--text-primary);
     --muted: var(--text-secondary);
     --faint: var(--text-tertiary);
+    /* 产品识别色:groiz = 青黛/蓝绿(共享色板上的 accent override,见 zio-eco-docs design-system/themes) */
+    --accent-primary: #2A7A72;
     --accent: var(--accent-primary);
     --accent-2: var(--ph-check);   /* 原第二强调(靛蓝)→ 灰紫 */
     --warn: var(--status-warning);
@@ -41,6 +43,7 @@
     --mono: var(--zt-font-mono);
     --sans: var(--zt-font-sans);
   }
+  html[data-theme="dark"] { --accent-primary: #55A6A0; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html { scroll-behavior: smooth; }
   body {
