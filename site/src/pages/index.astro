@@ -1,0 +1,624 @@
+---
+import Base from '../layouts/Base.astro';
+---
+<Base title="Groiz · agent 工作区">
+
+
+<nav class="topnav zt-glass" aria-label="应用导航">
+  <span class="brand">groiz</span>
+  <span class="sep" aria-hidden="true"></span>
+  <a class="link" href="#/home">Home</a>
+  <a class="link" href="#/agent">Agent</a>
+  <a class="link" href="#/run">Tasks</a>
+  <a class="link" href="#/learn">Learn</a>
+  <a class="link" href="#/status">状态</a>
+  <span class="sep" aria-hidden="true"></span>
+  <span class="link soon" tabindex="0" data-soon="Memory · 需要记忆存储后端(提案 P-G1,zio-eco-docs/docs/ux/groiz-ia.md)——当前版本未开放">Memory</span>
+  <span class="link soon" tabindex="0" data-soon="Skills · 需要能力结构化存储(提案 P-G1)——当前版本未开放">Skills</span>
+  <span class="link soon" tabindex="0" data-soon="Evolution · 需要演化记录后端(提案 P-G1)——当前版本未开放">Evolution</span>
+  <span class="link soon" tabindex="0" data-soon="Inbox · 需要审批队列(提案 P-G2)——当前版本未开放">Inbox</span>
+  <span class="link soon" tabindex="0" data-soon="Rooms · 需要多 Agent 协作(提案 P-G3)——当前版本未开放">Rooms</span>
+  <span class="sep" aria-hidden="true"></span>
+  <a class="link ext" href="https://loom.lszio.space" target="_blank" rel="noopener">loom 控制台 <span class="arrow">↗</span></a>
+  <a class="link ext" href="https://github.com/lszio/groiz" target="_blank" rel="noopener">GitHub <span class="arrow">↗</span></a>
+  <button id="themeBtn" class="theme-btn" type="button" aria-label="切换主题">◐</button>
+</nav>
+
+<!-- ═══ Home · Agent 视角(非 KPI 仪表盘) ═══ -->
+<section class="view" data-view="home" id="view-home">
+  <section class="block" style="padding-top:36px">
+    <div class="wrap">
+      <div class="agent-hero">
+        <div class="agent-id">
+          <h1>loom 教学环</h1>
+          <p class="agent-desc">显式 agent 循环——什么时候问模型、怎么对待执行失败、何时停止，都写在 <code>agent.zio</code> 里，可读取、可比较、可改写。</p>
+          <div class="caps">
+            <span class="cap">complete</span><span class="cap">execute</span><span class="cap">extract</span>
+            <span class="cap">revise</span><span class="cap">candidate?</span>
+          </div>
+        </div>
+        <div class="state-col">
+          <span class="badge" id="hState"><span class="dot" id="hDot"></span><span id="hStateText">connecting…</span></span>
+          <span class="last-act" id="hLastAct">最近活动:—</span>
+        </div>
+      </div>
+    </div>
+  </section>
+  <section class="block">
+    <div class="wrap home-grid">
+      <div class="panel">
+        <h3>Currently working</h3>
+        <p class="sub">教学端口的最近函数调用（<a href="#/agent" data-tab="p-act">Activity</a> 里可开启 LIVE 实时）</p>
+        <div id="hWorking" class="kv-list"><div class="empty">暂无事件——发起一次运行或开启 LIVE。</div></div>
+      </div>
+      <div class="panel">
+        <h3>Recent tasks</h3>
+        <p class="sub">grove 运行台账（token 门控；无 token 时显示本页最近一次运行）</p>
+        <div id="hTasks"><div class="empty">本页会话还没有运行——<a href="#/run">发起第一次运行 →</a></div></div>
+      </div>
+    </div>
+  </section>
+  <section class="block">
+    <div class="wrap">
+      <div class="learn-strip">
+        <div>
+          <b>Recent learning · coming soon</b>
+          <p>记忆与技能沉淀需要存储后端（提案 P-G1）——现在不展示编造的学习记录。</p>
+        </div>
+        <a class="btn" href="#/learn">学原理（Learn，脚本化演示）→</a>
+      </div>
+      <p class="about-line">Groiz 是一个治理学习运行平台：agent 循环不是提示词的隐式编排，而是一段真实执行的 Zio 程序。<a href="#/about">产品定位与循环总览 →</a></p>
+    </div>
+  </section>
+</section>
+
+<!-- ═══ Agent · 目录+详情(v1 单实体:loom 教学环) ═══ -->
+<section class="view" data-view="agent" id="view-agent" hidden>
+  <section class="block" style="padding-top:36px">
+    <div class="wrap">
+      <div class="agent-hero">
+        <div class="agent-id">
+          <h1>loom 教学环</h1>
+          <p class="agent-desc">身份即程序:这个 Agent 的决策逻辑就是 agent.zio——审查它等于审查它。</p>
+          <div class="caps">
+            <span class="cap">complete</span><span class="cap">execute</span><span class="cap">extract</span>
+            <span class="cap">revise</span><span class="cap">candidate?</span>
+          </div>
+        </div>
+        <div class="state-col">
+          <span class="badge" id="aState"><span class="dot" id="aDot"></span><span id="aStateText">connecting…</span></span>
+        </div>
+      </div>
+      <div class="tabs" role="tablist">
+        <button class="atab on" data-pane="p-over" role="tab" aria-selected="true">Overview</button>
+        <button class="atab" data-pane="p-act" role="tab" aria-selected="false">Activity</button>
+        <button class="atab" data-pane="p-task" role="tab" aria-selected="false">Tasks</button>
+        <button class="atab" data-pane="p-cfg" role="tab" aria-selected="false">Configuration</button>
+      </div>
+      <div id="p-over" class="apane on">
+        <div class="panel">
+          <h3>身份与状态（全部来自真实 API）</h3>
+          <div class="kv-list" id="aKv">
+            <div class="kv"><dt>名称/职责</dt><dd>loom 教学环 — 显式 agent 循环</dd></div>
+            <div class="kv"><dt>运行面</dt><dd>loom.lszio.space（serve.zio 单进程）</dd></div>
+            <div class="kv"><dt>预算钳制</dt><dd>max-turns 1–3，服务端钳制，界面不虚构</dd></div>
+            <div class="kv"><dt>教学端口</dt><dd id="aTeach">—</dd></div>
+            <div class="kv"><dt>trace cursor</dt><dd id="aCursor">—</dd></div>
+            <div class="kv"><dt>最近运行</dt><dd id="aLastRun">—</dd></div>
+            <div class="kv"><dt>任务台账</dt><dd>grove /api/runs · reader token 门控（<a href="#/status">状态页填入</a>）</dd></div>
+          </div>
+          <div class="soon-row"><span>记忆 / 技能沉淀</span><span>Coming soon · 提案 P-G1</span></div>
+        </div>
+      </div>
+      <div id="p-act" class="apane"><!-- Observe 全部内容在启动时原样移入,业务 JS 不动 --></div>
+      <div id="p-task" class="apane">
+        <div class="panel" style="margin-bottom:14px">
+          <h3>运行台账（grove）</h3>
+          <p class="sub">reader token 门控;token 在<a href="#/status">状态页</a>填入,只存本机。无 token 时这里保持空态说明。</p>
+          <div id="aRuns" class="kv-list"><div class="empty">未填 token——认证被拒绝是权限模型在工作,不是故障。</div></div>
+        </div>
+        <div id="runHost"><!-- Run 视图全部内容在启动时原样移入 --></div>
+      </div>
+      <div id="p-cfg" class="apane">
+        <div class="panel">
+          <h3>agent.zio — 这个 Agent 的全部决策逻辑</h3>
+          <p class="sub">行为表决定它"怎么问、怎么跑、何时算完成";宿主决定花多少预算、能碰到什么。</p>
+          <div class="code-panel"><div class="code-file"><span>libs/loom/agent.zio</span><span>Zio</span></div>
+            <div class="code-block"><pre id="cfgSrc"></pre></div></div>
+          <p class="sub" style="margin-top:12px">逐行讲解与可交互演示在 <a href="#/learn">Learn</a>。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</section>
+
+<!-- ═══ 关于(原总览:定位与循环总览,不再是首屏) ═══ -->
+<section class="view" data-view="about" id="view-overview" hidden>
+  <header class="hero">
+    <div class="wrap">
+      <div class="kicker">Groiz · grove — 自主执行控制面</div>
+      <h1>让 agent 的显式逻辑<span class="dim">成为可审查的程序</span></h1>
+      <p class="lead">
+        Groiz 是一个治理学习运行平台。它的 agent 循环不是提示词的隐式编排，而是一段
+        <b>真实执行的 Zio 程序</b>：什么时候问模型、怎么对待执行失败、何时停止，都写在代码里，可以被读取、比较和改写。
+        在这里观察真实的执行、亲手发起一次运行、或者拆开循环学习它。
+      </p>
+      <div class="cta">
+        <a class="btn primary" href="#/agent">查看 Agent</a>
+        <a class="btn" href="#/run">发起一次运行</a>
+        <a class="btn" href="#/learn">先学原理</a>
+      </div>
+    </div>
+  </header>
+
+  <section class="block">
+    <div class="wrap">
+      <h3>循环总览</h3>
+      <p class="sub">
+        一次 Groiz agent 运行的完整回合。决定"下一步做什么"的判定逻辑跑在 Zio 里；
+        模型调用与候选执行是两个<b>宿主绑定</b>——宿主决定一次调用花多少预算、一段代码能碰到什么，程序自己无法扩大。
+        <a href="#/observe">Observe</a> 里能看到这些节点在真实 trace 中的对应调用。
+      </p>
+      <div class="loop-diagram" id="loopDiagram">
+        <div class="loop-node" data-node="task">
+          <div class="n">task</div><div class="t">任务与预算</div>
+          <div class="d">任务描述 + <code>max-turns</code>，上限由宿主给定</div>
+        </div>
+        <div class="loop-node" data-node="model">
+          <div class="n">ask</div><div class="t">询问模型</div>
+          <div class="d"><code>complete</code>（行为表项）：任务 + 上一轮失败证据 → 程序候选</div>
+        </div>
+        <div class="loop-node" data-node="exec">
+          <div class="n">execute</div><div class="t">隔离执行</div>
+          <div class="d"><code>execute</code>（行为表项）：jail 里的 zio 进程，单帧 JSON 信封回报</div>
+        </div>
+        <div class="loop-node" data-node="feedback">
+          <div class="n">revision</div><div class="t">失败即证据</div>
+          <div class="d">非 completed 的结果原样带回下一轮，不做摘要、不美化</div>
+        </div>
+        <div class="loop-node stop" data-node="stop">
+          <div class="n">stop</div><div class="t">候选或耗尽</div>
+          <div class="d"><code>candidate</code>（执行成功）或 <code>exhausted</code>（到达 turn 上限）</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block">
+    <div class="wrap">
+      <h3>生态</h3>
+      <p class="sub">Groiz 以 Zio 为语言、以 Loom 为 harness；三个入口都是真实服务的公开面。</p>
+      <div class="eco-grid">
+        <a class="eco-card" href="https://loom.lszio.space" target="_blank" rel="noopener">
+          <b>loom 控制台 ↗</b>
+          <span>agent 框架线上实例：预算会话 + 函数执行实况(本页 Observe 的数据源)。</span>
+        </a>
+        <a class="eco-card" href="https://api.groiz.lszio.space/api/health" target="_blank" rel="noopener">
+          <b>grove 控制面 ↗</b>
+          <span>学习运行的平台面：运行台账 / 事件日志(reader 角色鉴权)。</span>
+        </a>
+        <a class="eco-card" href="https://github.com/lszio/zio" target="_blank" rel="noopener">
+          <b>lszio/zio ↗</b>
+          <span>通用 Lisp 语言本体与 Loom 库——循环判定逻辑住在这里。</span>
+        </a>
+      </div>
+    </div>
+  </section>
+</section>
+
+<!-- ═══ Observe:执行时间线 + Inspector ═══ -->
+<section class="view" data-view="observe" id="view-observe" hidden>
+  <div class="wrap">
+    <div class="view-head">
+      <h2><span class="idx">01</span>Observe — 执行时间线</h2>
+      <p>
+        agent 循环在被教学观测器观测(第二个观测端口,显式 opt-in,白名单只监听 agent.zio,凭据流经的模块不在端口内)。
+        时间线按 <b>turn 分组</b>:每个回合从 <code>(if (>= turn max-turns)</code> 的判定开始;点击任意事件,Inspector 显示它那一行源码与完整实参。
+        REPLAY 是一次真实离线运行(jail 诚实拒绝,两轮修订后耗尽);LIVE 轮询 loom 控制台的最新运行。
+      </p>
+    </div>
+    <div class="view-body">
+      <div class="strip" id="obsStrip">
+        <span class="ent"><span class="dot" id="oLoomDot"></span>loom <b id="oLoom">…</b></span>
+        <span class="ent">teach <b id="oTeach">…</b></span>
+        <span class="ent">cursor <b id="oCursor">…</b></span>
+        <span class="ent"><span class="dot" id="oGroveDot"></span>grove <b id="oGrove">…</b></span>
+        <span class="spacer"></span>
+        <a href="#/status">完整状态 →</a>
+      </div>
+      <div class="obs-grid">
+        <div class="card">
+          <div class="live-bar">
+            <div class="mode">
+              <button id="mReplay" class="on">REPLAY</button>
+              <button id="mLive">LIVE · loom.lszio.space</button>
+            </div>
+            <label><input type="checkbox" id="follow" checked style="width:auto"> 跟随最新</label>
+            <span class="stat" id="liveStat"></span>
+          </div>
+          <div class="timeline-bar" id="liveTimeline" title="点击回看事件"></div>
+          <div class="tl" id="liveTl"><div class="empty">…</div></div>
+        </div>
+        <div class="card inspector">
+          <div class="head"><span><span class="dot" style="background:var(--accent-2)"></span>Inspector</span><span id="insWhere">libs/loom/agent.zio</span></div>
+          <div class="body">
+            <div class="src-file"><span id="insFile">libs/loom/agent.zio</span><span>Zio</span></div>
+            <div class="src-pane" id="insSrc"></div>
+            <div class="detail" id="insDetail">
+              <div class="kv"><b>提示</b><span style="color:var(--faint);font-size:12.5px">点击时间线或时间轴中的事件,查看那一行的调用与实参。</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ Run:真实运行工作区 ═══ -->
+<section class="view" data-view="run" id="view-run" hidden>
+  <div class="wrap">
+    <div class="view-head">
+      <h2><span class="idx">02</span>Run — 发起一次运行</h2>
+      <p>
+        把任务交给 loom 控制台的 agent 循环(跨源调用 <code>POST /api/run</code>;服务端把 max-turns 钳制在 1–3,宿主独立计量——这是启动器授予的有界消费面,chat 仍然只在 loom 控制台同源开放)。
+        运行结束后,这一轮的全部函数调用会以 turn 时间线展示。
+      </p>
+    </div>
+    <div class="view-body">
+      <div class="run-grid">
+        <div class="card">
+          <div class="head"><span><span class="dot"></span>任务定义</span><span>POST /api/run</span></div>
+          <div class="body run-form">
+            <form id="runForm">
+              <label for="runTask">任务(task)</label>
+              <input type="text" id="runTask" value="print the sum 1..10" autocomplete="off">
+              <div class="row2">
+                <div>
+                  <label for="runTurns">max-turns(服务端钳制 1–3)</label>
+                  <select id="runTurns">
+                    <option value="1">1</option>
+                    <option value="2" selected>2</option>
+                    <option value="3">3</option>
+                  </select>
+                </div>
+              </div>
+              <button type="submit" id="runBtn">发起运行</button>
+            </form>
+            <p class="run-hint">
+              运行在 loom 控制台执行(mock 上游;换真实模型由 dokploy 环境变量决定)。容器 jail 无 Linux namespace 时以
+              <code>capability-denied</code> 诚实拒绝候选执行——失败是证据,不是故障。
+            </p>
+          </div>
+        </div>
+        <div>
+          <div class="outcome" id="runOutcome">
+            <div class="o-head"><span class="o-state" id="oState">…</span><span id="oTitle"></span></div>
+            <div class="o-body" id="oBody"></div>
+          </div>
+          <div class="card">
+            <div class="head"><span><span class="dot" style="background:var(--accent-2)"></span>本轮迭代时间线</span><span id="runStat"></span></div>
+            <div class="timeline-bar" id="runTimelineBar"></div>
+            <div class="tl" id="runTl" style="max-height:420px"><div class="empty">发起运行后,这一轮的函数调用会出现在这里。</div></div>
+          </div>
+        </div>
+      </div>
+      <p class="run-hint" style="margin-top:14px">
+        状态对照:循环只产出一个真实终态 —— <code>candidate</code>(执行成功,进入候选)/ <code>exhausted</code>(到达 turn 上限)/
+        <code>failed</code>(执行或提取失败)。没有"等待确认/已取消"这类本后端不产生的状态;界面不虚构。
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ Learn:原理 + 脚本化演示 ═══ -->
+<section class="view" data-view="learn" id="view-learn" hidden>
+  <div class="wrap">
+    <div class="view-head">
+      <h2><span class="idx">03</span>Learn — 判定逻辑与宿主能力的分离</h2>
+      <p>
+        循环只有一个调用点：Zio 决定<b>何时问、问完怎么办、何时停</b>；
+        宿主决定一次模型调用花多少预算、一段程序被允许碰到什么、跑多久。两件事在同一份源码里划得很清楚。
+      </p>
+    </div>
+    <div class="view-body">
+
+      <div class="lesson">
+        <div class="prose">
+          <h4>整个循环，就这一个函数</h4>
+          <p>
+            <code class="inline">agent-run</code> 是循环的全部控制流：带一个 turn 计数和一个 feedback 值递归（尾递归）。
+            循环读的是<b>行为表</b>——每个判定都是表里的一项。每轮做三件事：<b>问</b>（<code class="inline">complete</code> 拿到回复），<b>执行</b>（<code class="inline">execute</code> 跑真实进程），
+            <b>判定</b>（<code class="inline">candidate?</code> 成立 → candidate 结束；否则带着失败证据进下一轮）。
+          </p>
+          <p>
+            注意 <code class="inline">max-turns</code> 的来源——它是<b>宿主传进来的上限</b>，不是程序自己决定的数。
+            注释里写明了：就算这段代码无视这个参数，宿主也在独立计量调用次数。
+            循环自己没有能力给自己加轮次。
+          </p>
+          <p>
+            失败的反馈<b>原样传递</b>（<code class="inline">feedback-of</code> 不做摘要）：
+            一轮修订如果只能看到失败原因的转述，那它是在猜。这是整个设计里最实用主义的一条。
+          </p>
+        </div>
+        <div class="card code-panel">
+          <div class="code-file"><span>libs/loom/agent.zio — Zio 库（Loom）</span><span>循环判定</span></div>
+          <div class="code-block"><pre class="code"><span class="cm">;; 循环本身:判定逻辑全是行为表的项。max-turns 是</span>
+<span class="cm">;; 宿主授予的上限,不是这段代码决定的数:调用计数</span>
+<span class="cm">;; 在宿主侧独立计量。</span>
+(<span class="kw">defn</span> <span class="fn">agent-run</span> [task behavior]
+  (<span class="kw">let*</span> [b (<span class="kw">if</span> (<span class="fn">map?</span> behavior) behavior &#123;&#125;)
+         <span class="fn">complete</span>   (<span class="fn">get</span> b <span class="st">:complete</span> nil)      <span class="cm">;; ① 问(必填)</span>
+         <span class="fn">execute</span>    (<span class="fn">get</span> b <span class="st">:execute</span> nil)       <span class="cm">;; ② 执行(必填)</span>
+         max-turns  (<span class="fn">get</span> b <span class="st">:max-turns</span> 3)
+         extract    (<span class="fn">get</span> b <span class="st">:extract</span> source-of)
+         revise     (<span class="fn">get</span> b <span class="st">:revise</span> feedback-of)
+         <span class="fn">candidate?</span> (<span class="fn">get</span> b <span class="st">:candidate?</span> agent--completed?)]
+    (<span class="kw">loop</span> [turn 0 feedback nil]
+      (<span class="kw">if</span> (&gt;= turn max-turns)
+        &#123;:status <span class="st">"exhausted"</span> :turns turn :last feedback&#125;
+        (<span class="kw">let*</span> [reply (<span class="fn">complete</span> task feedback)          <span class="cm">;; 问</span>
+               source (extract reply)                  <span class="cm">;; 无 :source 则非程序</span>
+               outcome (<span class="kw">if</span> (nil? source)
+                         &#123;:status <span class="st">"failed"</span>
+                          :error <span class="st">"the model returned no source to execute"</span>&#125;
+                         (<span class="fn">execute</span> source))]            <span class="cm">;; 执行</span>
+          (<span class="kw">if</span> (<span class="fn">candidate?</span> outcome)
+            &#123;:status <span class="st">"candidate"</span> :turns (+ turn 1) :execution outcome&#125;
+            (<span class="kw">recur</span> (+ turn 1) (revise outcome))))))))
+
+(<span class="kw">defn</span> <span class="fn">feedback-of</span> [outcome]
+  <span class="cm">;; 错误整条携带，不摘要：看到转述的修订是在猜。</span>
+  &#123;:status  (<span class="fn">get</span> outcome <span class="st">:status</span> <span class="st">"failed"</span>)
+   :error   (<span class="fn">get</span> outcome <span class="st">:error</span> <span class="st">"no error detail was reported"</span>)
+   :turns   (<span class="fn">get</span> outcome <span class="st">:turns</span> 0)&#125;)</pre></div>
+        </div>
+      </div>
+
+      <div class="lesson">
+        <div class="prose">
+          <h4>两个宿主绑定：合同先行</h4>
+          <p>
+            <code class="inline">complete</code> 与 <code class="inline">execute</code>（行为表项，由
+            <code class="inline">make-complete-binding</code> / <code class="inline">make-execute-binding</code> 组装）
+            是循环不能自己完成的两件事。它们按<b>调用方</b>装配：
+          </p>
+          <ul>
+            <li><b>启动器路径</b>（<code class="inline">tools/groiz run</code>）：Zio 写在 <code class="inline">agent.zio</code> 里——模型走 <code class="inline">host/http-request</code> 打 OpenAI 兼容端点；候选走 <code class="inline">host/process-start</code> 进 jail，以 <code class="inline">zio --emit-framed</code> 的单帧 JSON 回报。</li>
+            <li><b>Rust 路径</b>（<code class="inline">grove-app</code> 的 AgentHost）：绑定由 Rust 装配——模型走 Loom session（测试用脚本化 ModelHost），候选走 <code class="inline">grove::execution</code> 沙箱。合同测试不联网，回放证明宿主行为，模型能力由真实调用单独验收。</li>
+          </ul>
+          <p>
+            两个绑定都返回 keyword 键的 map——Zio 的 map 约定。用 string 键去读只会拿到默认值，
+            这正是一轮失败被误读成"没有错误"的原因，所以代码注释里专门写了这一条。
+          </p>
+          <table class="map-table">
+            <tr><th>绑定</th><th>入参</th><th>返回</th></tr>
+            <tr><td>complete</td><td>(task feedback)</td><td>&#123;:source "…"&#125; 有程序；&#123;:text "…"&#125; 只是话</td></tr>
+            <tr><td>execute</td><td>(source)</td><td>&#123;:status "completed"|"failed" :error :output&#125;</td></tr>
+          </table>
+          <p>
+            <b>没有 :source 的回复不是程序。</b>把它当程序执行，等于把空串递给沙箱、再报告沙箱对空串的看法——读起来像在评价模型写的代码，其实模型什么都没写。
+          </p>
+        </div>
+        <div class="card code-panel">
+          <div class="code-file"><span>libs/loom/candidate.zio — 参考绑定</span><span>宿主绑定</span></div>
+          <div class="code-block"><pre class="code"><span class="cm">;; 模型一侧:OpenAI 兼容端点,启动器的网络授权。</span>
+<span class="cm">;; make-complete-binding 返回闭包,闭包内经 host/getenv</span>
+<span class="cm">;; 读 key——名字进得了行为表,值进不了。</span>
+(<span class="kw">defn</span> <span class="fn">make-complete-binding</span> [config]
+  (<span class="kw">fn</span> [task feedback]
+    (<span class="kw">let*</span> [reply (<span class="hl">host/http-request</span>
+                   (str base-url <span class="st">"/chat/completions"</span>)
+                   &#123;:method <span class="st">"POST"</span>
+                    <span class="hl">:headers &#123;:authorization (str <span class="st">"Bearer "</span> (host/getenv api-key-env))&#125;</span>
+                    :body (json-stringify &#123;:model model
+                            <span class="cm">;; ① 问:任务 + 上一轮失败证据</span>
+                            :messages [&#123;:role <span class="st">"user"</span>
+                              :content (prompt task feedback)&#125;]&#125;)&#125;)
+           content (…choices[0].message.content…)]
+      (<span class="kw">if</span> (nil? content)
+        &#123;:text <span class="st">"the provider returned no message content"</span>&#125;
+        (<span class="kw">let</span> [source (fence-source content)]
+          (<span class="kw">if</span> (nil? source)
+            &#123;:text content&#125;          <span class="cm">;; 说话，不是程序</span>
+            &#123;:source source :text content&#125;)))))
+
+<span class="cm">;; 候选一侧:同一个 jail、同一个 NDJSON 合同。</span>
+(<span class="kw">defn</span> <span class="fn">make-execute-binding</span> [config]
+  (<span class="kw">fn</span> [source]
+    (<span class="kw">let*</span> […staged (host/write-atomic host-dir source)…]
+      (<span class="kw">try</span>
+        (<span class="kw">let</span> [proc (<span class="hl">host/process-start</span>
+                    &#123;:executable zio-bin
+                     :argv [<span class="st">"--emit-framed"</span> <span class="st">"--step-limit"</span> …
+                            jail-path]
+                     :cwd jail-scratch :scratch scratch
+                     <span class="cm">;; app-share 是启动器授予的读根:</span>
+                     :read-only-mounts [&#123;:source app-share …&#125;]
+                     :timeout-ms timeout-ms
+                     :max-cpu-seconds 300 :max-processes 64&#125;)
+               frame (candidate--read-frame proc deadline)]
+          (host/process-kill proc)
+          <span class="cm">;; 信封 → outcome map：status/error/output</span>
+          (candidate--outcome-of frame))
+        (<span class="kw">catch</span> any
+          <span class="cm">;; macOS 没有 Linux namespaces：诚实拒绝，</span>
+          <span class="cm">;; 这个失败本身作为证据进入下一轮。</span>
+          &#123;:status <span class="st">"failed"</span> :error (<span class="kw">str</span> *error*) :output <span class="st">""</span>&#125;)))))</pre></div>
+        </div>
+      </div>
+
+      <div class="lesson">
+        <div class="prose">
+          <h4>执行合同：一帧 JSON，一次诚实</h4>
+          <p>
+            候选进程的 stdout 只允许出现一帧 JSON——这是 <code class="inline">--emit-framed</code> 的信封，
+            候选自己的打印被捕获进 <code class="inline">output</code> 字段，帧流保持可解析。
+            status 由宿主根据真实结果计算：refused（拒绝执行）和 failed（跑失败）是两个不同的事实，
+            程序没有权利给自己命名一个体面的状态。
+          </p>
+          <p>
+            隔离不是可选的礼貌：候选进程起在 user/mount/pid namespace 的 jail 里，
+            <code class="inline">env -i</code> 清空环境、scratch 是唯一可写点、其余只读挂载。
+            没有 namespace 的宿主（比如 macOS）会以 <code class="inline">capability-denied</code> 拒绝——
+            <b>诚实的拒绝比假装成功的模拟更有价值</b>，因为它把边界缺口变成了一等证据。
+          </p>
+        </div>
+        <div class="card code-panel">
+          <div class="code-file"><span>真实执行的帧（2026-10-31 实跑记录）</span><span>NDJSON</span></div>
+          <div class="code-block"><pre class="code"><span class="cm">// 一轮候选执行在 stdout 上留下的全部东西：</span>
+&#123;"error":"",
+ "output":"noisy\n",          <span class="cm">// 候选自己 println 的内容</span>
+ "output-truncated":false,
+ "result":null,
+ "status":"completed",         <span class="cm">// 宿主计算的状态，非自报</span>
+ "steps":0&#125;
+
+<span class="cm">// 循环对它的判定路径：</span>
+<span class="cm">;; status == "completed"  →  &#123;:status "candidate" …&#125;</span>
+<span class="cm">;; 其他（failed / refused） →  feedback 带回下一轮：</span>
+&#123;:status "failed"
+ :error "capability-denied: process isolation requires Linux namespaces"
+ :turns 1&#125;</pre></div>
+        </div>
+      </div>
+
+      <div class="lesson">
+        <div class="prose">
+          <h4>为什么循环本身要是一门同像性语言的程序</h4>
+          <p>
+            Groiz 的论点：自学习系统的升级依据应该来自<b>独立评价与人工审查</b>，而不是模型对自己行为的文字解释。
+            前提是——agent 的显式逻辑必须是<b>真实执行的程序</b>，可以被读取、比较和改写。
+          </p>
+          <p>
+            同像性（代码即数据）提供的是这一步：<code class="inline">agent-run</code> 不是藏在框架里的隐式控制流，
+            它就是仓库里的一个 <code class="inline">(defn …)</code>。审查者可以 diff 两个版本的循环、
+            提议改写并自动实验——<b>在授权范围内</b>。可学习区、受治理区、受保护区在架构里是三个不可合并的区域；
+            正式发布默认人工批准，人工同意也不能绕过硬门槛。
+          </p>
+          <p>
+            换句话说：这一课教你的循环，本身就是 Groiz 第一个<b>可被自己演化的对象</b>。
+          </p>
+        </div>
+        <div class="card code-panel">
+          <div class="code-file"><span>main.zio — 循环的入口合同</span><span>Zio</span></div>
+          <div class="code-block"><pre class="code"><span class="cm">;; The bounded-agent entry the generic runner calls. Grove owns the</span>
+<span class="cm">;; dispatch; Loom supplies the reusable loop, and the budget cap is a</span>
+<span class="cm">;; keyword the host meters, not a number the candidate chose.</span>
+(<span class="kw">defn</span> <span class="fn">agent-entry</span> [task budget]
+  (<span class="kw">require</span> :libs.loom.agent :refer [agent-run])
+  (<span class="fn">agent-run</span> task (get budget :max_turns 0)))
+
+<span class="cm">;; CLI 面：grove run --task … --provider-config … --max-turns N</span>
+(<span class="kw">defn</span> <span class="fn">grove--run-handler</span> [parsed]
+  (<span class="kw">let*</span> [opts (get parsed :options)
+         launcher (get parsed :launcher &#123;&#125;)
+         task (get opts :task <span class="st">""</span>)
+         max-turns (get opts :max-turns 3)]
+    (grove--require (not (= task <span class="st">""</span>)) <span class="st">"invalid-input"</span> <span class="st">"run needs --task"</span>)
+    (<span class="kw">load</span> <span class="st">"agent.zio"</span>)
+    (<span class="kw">let</span> [provider (agent--load-provider (get opts :provider-config <span class="st">""</span>))]
+      (views--render-run-report
+        (agent--run provider task max-turns launcher)))))</pre></div>
+        </div>
+      </div>
+
+      <section class="block" id="playground">
+        <h3>把循环走一遍（脚本化演示）</h3>
+        <p class="sub">
+          点"下一步"逐阶段推进，或"运行到底"看完整回合。每一阶段都会在右侧代码面板
+          <b>高亮真正实现它的那一行</b>——不是伪代码，是仓库里正在运行的源码。
+          <b>模型由页面脚本模拟</b>（第 1 轮故意有错、第 2 轮修订），与仓库合同测试的做法一致——它演示的是宿主与循环的行为，不是模型能力；
+          真实运行请去 <a href="#/run">Run</a>。
+        </p>
+        <div class="pg">
+          <div class="card">
+            <div class="head"><span><span class="dot"></span>运行面板</span><span>turn: <span id="pgTurn">0</span></span></div>
+            <div class="body">
+              <div class="pg-state">
+                <span>status: <b id="pgStatus">idle</b></span>
+                <span>max-turns: <b>3</b></span>
+                <span class="budget-bar"><div class="budget-track"><div class="budget-fill" id="pgBudget"></div></div></span>
+              </div>
+              <div class="pg-controls">
+                <button class="main" id="btnStep">下一步 →</button>
+                <button id="btnRun">运行到底</button>
+                <button id="btnReset">重置</button>
+              </div>
+              <div class="stage-feed" id="pgFeed">
+                <div class="stage"><div class="s-head"><span>等待开始</span><span class="tag">idle</span></div>
+                  <div class="s-body" style="color:var(--muted)">点击「下一步」开始。任务：<b style="color:var(--text)">“计算 21 的两倍并打印结果”</b>，预算 3 turns。</div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="card code-panel">
+            <div class="head"><span><span class="dot" style="background:var(--accent-2)"></span>实现源码</span><span id="codeWhere">libs/loom/agent.zio</span></div>
+            <div class="body">
+              <div class="code-file"><span id="codeFile">libs/loom/agent.zio — agent-run</span><span>Zio</span></div>
+              <div class="code-block" id="codeBlock"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ 状态 ═══ -->
+<section class="view" data-view="status" id="view-status" hidden>
+  <div class="wrap">
+    <div class="view-head">
+      <h2><span class="idx">04</span>状态 — 实体健康</h2>
+      <p>
+        这一节没有模拟:卡片直接请求运行面的 <b>/api/health</b>。
+        loom 控制台(同一个 agent 框架的线上实例)与 grove 控制面各自报告自己的真实状态;
+        教学端口(Observe 的数据源)是否开启,是启动器是否授予 <code>LOOM_TEACH_MODULES</code> 决定的。
+      </p>
+    </div>
+    <div class="view-body">
+      <div class="status-grid">
+        <div class="status-card">
+          <h3><span class="dot" id="dLoom"></span>loom 控制台 <span style="color:var(--muted);font-weight:400;font-size:11px">loom.lszio.space</span></h3>
+          <div class="sub">agent 框架线上实例 — 预算会话 / 教学端口</div>
+          <div class="row"><span>status</span><b id="loomStatus">…</b></div>
+          <div class="row"><span>教学端口 (trace)</span><b id="loomTeach">…</b></div>
+          <div class="row"><span>trace cursor</span><b id="loomCursor">…</b></div>
+          <div class="row"><span>查看</span><b><a href="https://loom.lszio.space" target="_blank" rel="noopener" style="color:var(--accent)">打开控制台 ↗</a></b></div>
+        </div>
+        <div class="status-card">
+          <h3><span class="dot" id="dGrove"></span>grove 控制面 <span style="color:var(--muted);font-weight:400;font-size:11px">api.groiz.lszio.space</span></h3>
+          <div class="sub">学习运行的平台面 — 运行台账 / 事件日志</div>
+          <div class="row"><span>status</span><b id="groveStatus">…</b></div>
+          <div class="row"><span>schema</span><b id="groveSchema">…</b></div>
+          <div class="row"><span>owner_epoch</span><b id="groveEpoch">…</b></div>
+          <div class="row"><span>scheduler</span><b id="groveSched">…</b></div>
+          <div class="row"><span>查看</span><b><a href="https://api.groiz.lszio.space/api/health" target="_blank" rel="noopener" style="color:var(--accent)">health ↗</a></b></div>
+        </div>
+        <div class="status-card">
+          <h3><span class="dot" id="dRuns"></span>运行台账(可选)</h3>
+          <div class="sub">/api/runs · /api/events 需要 reader 角色 token — 公开页面不内置凭据,愿意带的访客可自行填入(只存本机)。</div>
+          <input id="groveToken" placeholder="GROIZ_TOKEN_READER…(可选)" autocomplete="off">
+          <div class="hint" id="runsView">填入 token 后这里显示运行台账。不带 token 时:认证被拒绝是权限模型在工作,不是故障。</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="repos">
+      <a href="https://github.com/lszio/groiz" target="_blank" rel="noopener">lszio/groiz →</a>
+      <a href="https://github.com/lszio/zio" target="_blank" rel="noopener">lszio/zio（语言与 Loom）→</a>
+    </div>
+    <div class="honest">
+      <b>诚实声明</b>：Learn 里的 Playground 是<b>脚本化演示</b>（模型由页面脚本扮演，与仓库合同测试的做法一致）——它证明的是宿主与循环的行为，不是模型能力；
+      Observe 的 REPLAY 是一次真实离线运行的 trace,LIVE 与 Run 面板读取的是 loom 控制台的<b>真实</b>运行。
+      展示的源码摘自仓库当前版本；真实端到端运行（真实模型 + jail 隔离执行）在 Linux 部署上验收，
+      容器无 namespace 时以 <code>capability-denied</code> 诚实拒绝候选执行。
+    </div>
+    <div class="fine">Groiz 是独立应用，以 Zio 为语言基础、以 Loom 为 harness。Zio 保持通用语言身份；学习目标、发布权限与实验数据不进入语言核心。</div>
+  </div>
+</footer>
+
+</Base>

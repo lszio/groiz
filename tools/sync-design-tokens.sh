@@ -14,7 +14,7 @@ ZIO_REPO="${ZIO_REPO:-/Volumes/Data/Projects/zio}"
 LOOM_PAGE="$ZIO_REPO/apps/loom/web/index.html"
 SITE_CSS="$ZIO_REPO/apps/site/src/styles/global.css"
 
-cp "$SRC" "$ROOT/site/tokens.css"
+cp "$SRC" "$ROOT/site/src/styles/zt-tokens.css"
 echo "synced tokens -> site/tokens.css"
 
 python3 - "$SRC" "$LOOM_PAGE" <<'PY'
