@@ -479,6 +479,59 @@
   }
   footer .fine { margin-top: 22px; font-size: 12.5px; color: var(--text-tertiary); }
 
+
+  /* ── Agent-first(P4):Home/Agent 卡、Tabs、占位、toast ── */
+  .agent-hero {
+    background: var(--card-bg); border: 1px solid var(--card-border);
+    border-radius: var(--zt-radius-xl); box-shadow: var(--card-shadow);
+    padding: 24px 28px;
+    display: grid; grid-template-columns: minmax(0,1fr) auto; gap: 20px; align-items: center;
+  }
+  .agent-id h1 { margin: 0 0 6px; font-family: var(--sans); font-size: 26px; }
+  .agent-desc { margin: 0 0 10px; color: var(--muted); font-size: 14px; max-width: 640px; }
+  .caps { display: flex; flex-wrap: wrap; gap: 6px; }
+  .cap { font-family: var(--mono); font-size: 11.5px; padding: 2px 9px; border: 1px solid var(--line); border-radius: var(--zt-radius-full); color: var(--text-secondary); }
+  .state-col { display: grid; gap: 8px; justify-items: end; }
+  .badge { display: inline-flex; align-items: center; gap: 7px; padding: 4px 12px; border-radius: var(--zt-radius-full); font-size: 12.5px; font-weight: 600; border: 1px solid var(--line); color: var(--muted); }
+  .badge.ok { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 40%, transparent); background: color-mix(in srgb, var(--ok) 10%, transparent); }
+  .badge.bad { color: var(--err); border-color: color-mix(in srgb, var(--err) 40%, transparent); background: color-mix(in srgb, var(--err) 10%, transparent); }
+  .badge .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .last-act { font-size: 12px; color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+  .home-grid { display: grid; grid-template-columns: minmax(0,1.2fr) minmax(0,1fr); gap: 14px; }
+  .home-grid > * { min-width: 0; }
+  .panel h3 { margin: 0 0 2px; font-size: 15px; }
+  .kv-list { display: grid; gap: 2px; margin-top: 10px; }
+  .kv-list .kv { display: grid; grid-template-columns: 130px 1fr; gap: 12px; padding: 6px 0; border-bottom: 1px dashed var(--line); font-size: 13.5px; }
+  .kv-list .kv dt { color: var(--muted); }
+  .kv-list .kv dd { margin: 0; color: var(--text); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .kv-list .empty { color: var(--muted); font-size: 13px; padding: 10px 0; }
+  .tabs { display: flex; gap: 2px; margin: 22px 0 14px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  .atab { padding: 9px 16px; border: 0; background: none; cursor: pointer; font: inherit; font-size: 14px; color: var(--muted); border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  .atab.on { color: var(--accent-primary); border-bottom-color: var(--accent-primary); font-weight: 600; }
+  .apane { display: none; }
+  .apane.on { display: block; }
+  .soon-row { display: flex; justify-content: space-between; gap: 12px; padding: 11px 14px; border: 1px dashed var(--line-strong); border-radius: var(--zt-radius-md); margin-top: 14px; font-size: 13px; color: var(--muted); }
+  .learn-strip { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 16px 18px; border: 1px dashed var(--line-strong); border-radius: var(--zt-radius-lg); flex-wrap: wrap; }
+  .learn-strip b { font-size: 14px; }
+  .learn-strip p { margin: 4px 0 0; color: var(--muted); font-size: 12.5px; }
+  .about-line { margin-top: 14px; color: var(--muted); font-size: 13px; }
+  .topnav .soon { color: var(--text-tertiary); cursor: not-allowed; opacity: .7; }
+  #toast {
+    position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%) translateY(8px);
+    background: var(--bg-elevated); border: 1px solid var(--line-strong); border-left: 3px solid var(--warn);
+    color: var(--text); font-size: 13px; padding: 10px 16px; border-radius: var(--zt-radius-md);
+    box-shadow: var(--zt-shadow-lg); opacity: 0; pointer-events: none;
+    transition: opacity var(--zt-motion-base) var(--zt-ease), transform var(--zt-motion-base) var(--zt-ease);
+    max-width: min(520px, 92vw); z-index: 60;
+  }
+  #toast.show { opacity: 1; transform: translateX(-50%); }
+  @media (max-width: 900px) {
+    .agent-hero { grid-template-columns: 1fr; }
+    .state-col { justify-items: start; }
+    .home-grid { grid-template-columns: 1fr; }
+    .topnav .soon { display: none; }
+  }
+
   @media (max-width: 640px) {
     header.hero, .view-head { padding-top: 104px; }
     section.block { padding: 44px 0; }
@@ -490,22 +543,136 @@
 <nav class="topnav zt-glass" aria-label="应用导航">
   <span class="brand">groiz</span>
   <span class="sep" aria-hidden="true"></span>
-  <a class="link" href="#/overview">总览</a>
-  <a class="link" href="#/observe">Observe</a>
-  <a class="link" href="#/run">Run</a>
+  <a class="link" href="#/home">Home</a>
+  <a class="link" href="#/agent">Agent</a>
+  <a class="link" href="#/run">Tasks</a>
   <a class="link" href="#/learn">Learn</a>
   <a class="link" href="#/status">状态</a>
+  <span class="sep" aria-hidden="true"></span>
+  <span class="link soon" tabindex="0" data-soon="Memory · 需要记忆存储后端(提案 P-G1,zio-eco-docs/docs/ux/groiz-ia.md)——当前版本未开放">Memory</span>
+  <span class="link soon" tabindex="0" data-soon="Skills · 需要能力结构化存储(提案 P-G1)——当前版本未开放">Skills</span>
+  <span class="link soon" tabindex="0" data-soon="Evolution · 需要演化记录后端(提案 P-G1)——当前版本未开放">Evolution</span>
+  <span class="link soon" tabindex="0" data-soon="Inbox · 需要审批队列(提案 P-G2)——当前版本未开放">Inbox</span>
+  <span class="link soon" tabindex="0" data-soon="Rooms · 需要多 Agent 协作(提案 P-G3)——当前版本未开放">Rooms</span>
   <span class="sep" aria-hidden="true"></span>
   <a class="link ext" href="https://loom.lszio.space" target="_blank" rel="noopener">loom 控制台 <span class="arrow">↗</span></a>
   <a class="link ext" href="https://github.com/lszio/groiz" target="_blank" rel="noopener">GitHub <span class="arrow">↗</span></a>
   <button id="themeBtn" class="theme-btn" type="button" aria-label="切换主题">◐</button>
 </nav>
 
-<!-- ═══ 总览 ═══ -->
-<section class="view" data-view="overview" id="view-overview">
-  <header class="hero zt-grain">
+<!-- ═══ Home · Agent 视角(非 KPI 仪表盘) ═══ -->
+<section class="view" data-view="home" id="view-home">
+  <section class="block" style="padding-top:36px">
     <div class="wrap">
-      <div class="kicker">GROIZ · grove — 自主执行控制面</div>
+      <div class="agent-hero">
+        <div class="agent-id">
+          <h1>loom 教学环</h1>
+          <p class="agent-desc">显式 agent 循环——什么时候问模型、怎么对待执行失败、何时停止，都写在 <code>agent.zio</code> 里，可读取、可比较、可改写。</p>
+          <div class="caps">
+            <span class="cap">complete</span><span class="cap">execute</span><span class="cap">extract</span>
+            <span class="cap">revise</span><span class="cap">candidate?</span>
+          </div>
+        </div>
+        <div class="state-col">
+          <span class="badge" id="hState"><span class="dot" id="hDot"></span><span id="hStateText">connecting…</span></span>
+          <span class="last-act" id="hLastAct">最近活动:—</span>
+        </div>
+      </div>
+    </div>
+  </section>
+  <section class="block">
+    <div class="wrap home-grid">
+      <div class="panel">
+        <h3>Currently working</h3>
+        <p class="sub">教学端口的最近函数调用（<a href="#/agent" data-tab="p-act">Activity</a> 里可开启 LIVE 实时）</p>
+        <div id="hWorking" class="kv-list"><div class="empty">暂无事件——发起一次运行或开启 LIVE。</div></div>
+      </div>
+      <div class="panel">
+        <h3>Recent tasks</h3>
+        <p class="sub">grove 运行台账（token 门控；无 token 时显示本页最近一次运行）</p>
+        <div id="hTasks"><div class="empty">本页会话还没有运行——<a href="#/run">发起第一次运行 →</a></div></div>
+      </div>
+    </div>
+  </section>
+  <section class="block">
+    <div class="wrap">
+      <div class="learn-strip">
+        <div>
+          <b>Recent learning · coming soon</b>
+          <p>记忆与技能沉淀需要存储后端（提案 P-G1）——现在不展示编造的学习记录。</p>
+        </div>
+        <a class="btn" href="#/learn">学原理（Learn，脚本化演示）→</a>
+      </div>
+      <p class="about-line">Groiz 是一个治理学习运行平台：agent 循环不是提示词的隐式编排，而是一段真实执行的 Zio 程序。<a href="#/about">产品定位与循环总览 →</a></p>
+    </div>
+  </section>
+</section>
+
+<!-- ═══ Agent · 目录+详情(v1 单实体:loom 教学环) ═══ -->
+<section class="view" data-view="agent" id="view-agent" hidden>
+  <section class="block" style="padding-top:36px">
+    <div class="wrap">
+      <div class="agent-hero">
+        <div class="agent-id">
+          <h1>loom 教学环</h1>
+          <p class="agent-desc">身份即程序:这个 Agent 的决策逻辑就是 agent.zio——审查它等于审查它。</p>
+          <div class="caps">
+            <span class="cap">complete</span><span class="cap">execute</span><span class="cap">extract</span>
+            <span class="cap">revise</span><span class="cap">candidate?</span>
+          </div>
+        </div>
+        <div class="state-col">
+          <span class="badge" id="aState"><span class="dot" id="aDot"></span><span id="aStateText">connecting…</span></span>
+        </div>
+      </div>
+      <div class="tabs" role="tablist">
+        <button class="atab on" data-pane="p-over" role="tab" aria-selected="true">Overview</button>
+        <button class="atab" data-pane="p-act" role="tab" aria-selected="false">Activity</button>
+        <button class="atab" data-pane="p-task" role="tab" aria-selected="false">Tasks</button>
+        <button class="atab" data-pane="p-cfg" role="tab" aria-selected="false">Configuration</button>
+      </div>
+      <div id="p-over" class="apane on">
+        <div class="panel">
+          <h3>身份与状态（全部来自真实 API）</h3>
+          <div class="kv-list" id="aKv">
+            <div class="kv"><dt>名称/职责</dt><dd>loom 教学环 — 显式 agent 循环</dd></div>
+            <div class="kv"><dt>运行面</dt><dd>loom.lszio.space（serve.zio 单进程）</dd></div>
+            <div class="kv"><dt>预算钳制</dt><dd>max-turns 1–3，服务端钳制，界面不虚构</dd></div>
+            <div class="kv"><dt>教学端口</dt><dd id="aTeach">—</dd></div>
+            <div class="kv"><dt>trace cursor</dt><dd id="aCursor">—</dd></div>
+            <div class="kv"><dt>最近运行</dt><dd id="aLastRun">—</dd></div>
+            <div class="kv"><dt>任务台账</dt><dd>grove /api/runs · reader token 门控（<a href="#/status">状态页填入</a>）</dd></div>
+          </div>
+          <div class="soon-row"><span>记忆 / 技能沉淀</span><span>Coming soon · 提案 P-G1</span></div>
+        </div>
+      </div>
+      <div id="p-act" class="apane"><!-- Observe 全部内容在启动时原样移入,业务 JS 不动 --></div>
+      <div id="p-task" class="apane">
+        <div class="panel" style="margin-bottom:14px">
+          <h3>运行台账（grove）</h3>
+          <p class="sub">reader token 门控;token 在<a href="#/status">状态页</a>填入,只存本机。无 token 时这里保持空态说明。</p>
+          <div id="aRuns" class="kv-list"><div class="empty">未填 token——认证被拒绝是权限模型在工作,不是故障。</div></div>
+        </div>
+        <div id="runHost"><!-- Run 视图全部内容在启动时原样移入 --></div>
+      </div>
+      <div id="p-cfg" class="apane">
+        <div class="panel">
+          <h3>agent.zio — 这个 Agent 的全部决策逻辑</h3>
+          <p class="sub">行为表决定它"怎么问、怎么跑、何时算完成";宿主决定花多少预算、能碰到什么。</p>
+          <div class="code-panel"><div class="code-file"><span>libs/loom/agent.zio</span><span>Zio</span></div>
+            <div class="code-block"><pre id="cfgSrc"></pre></div></div>
+          <p class="sub" style="margin-top:12px">逐行讲解与可交互演示在 <a href="#/learn">Learn</a>。</p>
+        </div>
+      </div>
+    </div>
+  </section>
+</section>
+
+<!-- ═══ 关于(原总览:定位与循环总览,不再是首屏) ═══ -->
+<section class="view" data-view="about" id="view-overview" hidden>
+  <header class="hero">
+    <div class="wrap">
+      <div class="kicker">Groiz · grove — 自主执行控制面</div>
       <h1>让 agent 的显式逻辑<span class="dim">成为可审查的程序</span></h1>
       <p class="lead">
         Groiz 是一个治理学习运行平台。它的 agent 循环不是提示词的隐式编排，而是一段
@@ -513,7 +680,7 @@
         在这里观察真实的执行、亲手发起一次运行、或者拆开循环学习它。
       </p>
       <div class="cta">
-        <a class="btn primary" href="#/observe">进入 Observe</a>
+        <a class="btn primary" href="#/agent">查看 Agent</a>
         <a class="btn" href="#/run">发起一次运行</a>
         <a class="btn" href="#/learn">先学原理</a>
       </div>
@@ -530,23 +697,23 @@
       </p>
       <div class="loop-diagram" id="loopDiagram">
         <div class="loop-node" data-node="task">
-          <div class="n">TASK</div><div class="t">任务与预算</div>
+          <div class="n">task</div><div class="t">任务与预算</div>
           <div class="d">任务描述 + <code>max-turns</code>，上限由宿主给定</div>
         </div>
         <div class="loop-node" data-node="model">
-          <div class="n">ASK</div><div class="t">询问模型</div>
+          <div class="n">ask</div><div class="t">询问模型</div>
           <div class="d"><code>complete</code>（行为表项）：任务 + 上一轮失败证据 → 程序候选</div>
         </div>
         <div class="loop-node" data-node="exec">
-          <div class="n">EXECUTE</div><div class="t">隔离执行</div>
+          <div class="n">execute</div><div class="t">隔离执行</div>
           <div class="d"><code>execute</code>（行为表项）：jail 里的 zio 进程，单帧 JSON 信封回报</div>
         </div>
         <div class="loop-node" data-node="feedback">
-          <div class="n">REVISION</div><div class="t">失败即证据</div>
+          <div class="n">revision</div><div class="t">失败即证据</div>
           <div class="d">非 completed 的结果原样带回下一轮，不做摘要、不美化</div>
         </div>
         <div class="loop-node stop" data-node="stop">
-          <div class="n">STOP</div><div class="t">候选或耗尽</div>
+          <div class="n">stop</div><div class="t">候选或耗尽</div>
           <div class="d"><code>candidate</code>（执行成功）或 <code>exhausted</code>（到达 turn 上限）</div>
         </div>
       </div>
@@ -991,16 +1158,25 @@
 </footer>
 
 <script>
-/* ═══ 视图路由:hash → .view,导航 aria-current 同步 ═══ */
-const VIEWS = ['overview', 'observe', 'run', 'learn', 'status'];
+/* ═══ 视图路由:hash → .view,导航 aria-current 同步。
+       P4 Agent-first:home 默认;#/observe、#/run 是旧入口别名,
+       分别落到 Agent 的 Activity / Tasks 标签(内容原样移入,业务 JS 不动)。 */
+const VIEWS = ['home', 'agent', 'about', 'learn', 'status'];
+const ROUTE_ALIAS = { observe: { view: 'agent', tab: 'p-act' }, run: { view: 'agent', tab: 'p-task' } };
 function route() {
-  const v = (location.hash || '#/overview').replace(/^#\//, '');
-  const view = VIEWS.includes(v) ? v : 'overview';
-  document.querySelectorAll('.view').forEach(s => { s.hidden = s.dataset.view !== view; });
+  const raw = (location.hash || '#/home').replace(/^#\//, '');
+  const alias = ROUTE_ALIAS[raw];
+  const v = VIEWS.includes(raw) ? raw : alias ? alias.view : 'home';
+  document.querySelectorAll('.view').forEach(s => { s.hidden = s.dataset.view !== v; });
   document.querySelectorAll('.topnav a.link').forEach(a => {
-    if (a.getAttribute('href') === '#/' + view) a.setAttribute('aria-current', 'page');
+    const target = (a.getAttribute('href') || '').replace(/^#\//, '');
+    // #/run → Tasks;#/observe 属 Agent 的 Activity → 亮 Agent
+    const mapped = alias ? (alias.tab === 'p-task' ? 'run' : 'agent') : raw;
+    const hit = target === mapped;
+    if (hit) a.setAttribute('aria-current', 'page');
     else a.removeAttribute('aria-current');
   });
+  if (alias && v === 'agent') showAgentTab(alias.tab);
 }
 window.addEventListener('hashchange', route);
 route();
@@ -1295,6 +1471,8 @@ document.getElementById('runForm').addEventListener('submit', async (e) => {
     // 终态映射:只展示后端真实产生的状态,不虚构
     const okState = data.status === 'candidate';
     const warnState = data.status === 'exhausted';
+    window.__lastRun = { task, status: data.status, turns: data.turns, at: new Date() };
+    if (typeof renderAgentAfterRun === 'function') renderAgentAfterRun();
     outcome.className = 'outcome show ' + (okState ? 'ok' : warnState ? 'warn' : 'bad');
     document.getElementById('oState').textContent = data.status;
     document.getElementById('oTitle').textContent =
@@ -1336,12 +1514,14 @@ async function pollStatus() {
     set('oLoom', d.status ?? '?');
     set('oTeach', d.teach ? '开启' : '未授予');
     set('oCursor', String(d['trace-cursor'] ?? '—'));
+    if (typeof renderAgentState === 'function') renderAgentState(true, d);
   } catch (e) {
     document.getElementById('dLoom').className = 'dot down';
     set('loomStatus', 'unreachable');
     set('loomTeach', '—'); set('loomCursor', '—');
     document.getElementById('oLoomDot').className = 'dot down';
     set('oLoom', 'unreachable'); set('oTeach', '—'); set('oCursor', '—');
+    if (typeof renderAgentState === 'function') renderAgentState(false, null);
   }
   const token = (document.getElementById('groveToken').value || '').trim();
   try {
@@ -1371,12 +1551,14 @@ async function pollStatus() {
       if (!r.ok) {
         dRuns.className = 'dot down';
         runsView.textContent = '认证被拒绝(' + r.status + ')——权限模型在工作。';
+        if (typeof renderAgentRuns === 'function') renderAgentRuns(null);
       } else {
         const runs = await r.json();
         dRuns.className = 'dot ok';
         runsView.textContent = runs.length
           ? runs.map(x => `${x.id}: ${x.state} ${x.steps_consumed}/${x.steps_budget}`).join('\n')
           : '(当前没有运行)';
+        if (typeof renderAgentRuns === 'function') renderAgentRuns(runs);
       }
     } catch (e) { dRuns.className = 'dot down'; runsView.textContent = 'unreachable'; }
   }
@@ -1713,6 +1895,132 @@ document.getElementById('themeBtn').addEventListener('click', () => ztTheme.cycl
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
   if (ztTheme.get() === 'system') ztTheme.apply('system');
 });
+/* ═══ P4 Agent-first 启动块:DOM 原样搬移 + 真实数据水合 ═══ */
+// Activity ← Observe、Tasks ← Run:整段移入 Agent 标签,业务 JS 引用的
+// id 全部保留,渲染函数照常工作。移除腾空的旧 section。
+(function relocate() {
+  const act = document.getElementById('p-act'), run = document.getElementById('runHost');
+  const obs = document.getElementById('view-observe'), runView = document.getElementById('view-run');
+  if (obs && act) { while (obs.firstChild) act.appendChild(obs.firstChild); obs.remove(); }
+  if (runView && run) { while (runView.firstChild) run.appendChild(runView.firstChild); runView.remove(); }
+})();
+
+function showAgentTab(pane) {
+  document.querySelectorAll('.atab').forEach(b => {
+    const on = b.dataset.pane === pane;
+    b.classList.toggle('on', on);
+    b.setAttribute('aria-selected', String(on));
+  });
+  document.querySelectorAll('.apane').forEach(p => p.classList.toggle('on', p.id === pane));
+}
+document.querySelectorAll('.atab').forEach(b =>
+  b.addEventListener('click', () => showAgentTab(b.dataset.pane)));
+
+/* 占位导航(Memory/Skills/Evolution/Inbox/Rooms):点击给说明,不出假页面 */
+const toast = document.createElement('div');
+toast.id = 'toast'; toast.setAttribute('role', 'status');
+document.body.appendChild(toast);
+let toastTimer = null;
+function showToast(text) {
+  toast.textContent = text;
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 4200);
+}
+document.querySelectorAll('.topnav .soon').forEach(el => {
+  el.addEventListener('click', () => showToast(el.dataset.soon));
+  el.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); showToast(el.dataset.soon); } });
+});
+/* 带 data-tab 的站内链接:跳到 Agent 并打开指定标签(如 Home 的 Activity 链接) */
+document.querySelectorAll('a[data-tab]').forEach(a => {
+  a.addEventListener('click', () => {
+    if (location.hash === '#/agent') showAgentTab(a.dataset.tab);
+    else {
+      location.hash = '#/agent';
+      setTimeout(() => showAgentTab(a.dataset.tab), 0);
+    }
+  });
+});
+
+/* Configuration:agent.zio 全文(与 Inspector 同一数据源 SOURCES) */
+document.getElementById('cfgSrc').textContent = SOURCES['agent.zio'];
+
+/* 状态水合:数据全部来自已有 pollStatus / trace 事件,不新造数据 */
+function renderAgentState(ok, d) {
+  const text = ok ? ((d && d.status) || 'ok') : 'unreachable';
+  for (const [b, dot, t] of [['hState', 'hDot', 'hStateText'], ['aState', 'aDot', 'aStateText']]) {
+    const badge = document.getElementById(b);
+    if (!badge) continue;
+    badge.className = 'badge ' + (ok ? 'ok' : 'bad');
+    document.getElementById(t).textContent = ok ? '运行中 · session ' + text : '运行面不可达';
+  }
+  const teach = d ? (d.teach ? '开启' : '未授予') : '—';
+  const cursor = d ? String(d['trace-cursor'] ?? '—') : '—';
+  const aT = document.getElementById('aTeach'), aC = document.getElementById('aCursor');
+  if (aT) aT.textContent = teach;
+  if (aC) aC.textContent = cursor;
+}
+function renderAgentRuns(runs) {
+  const box = document.getElementById('aRuns');
+  if (!box) return;
+  if (runs === undefined) {
+    box.innerHTML = '<div class="empty">未填 token——认证被拒绝是权限模型在工作,不是故障。</div>';
+  } else if (runs === null) {
+    box.innerHTML = '<div class="empty">认证被拒绝——权限模型在工作。核对状态页的 token。</div>';
+  } else if (!runs.length) {
+    box.innerHTML = '<div class="empty">(grove 当前没有运行记录)</div>';
+  } else {
+    box.textContent = '';
+    for (const x of runs.slice(0, 6)) {
+      const row = document.createElement('div');
+      row.className = 'kv';
+      const dt = document.createElement('dt'); dt.textContent = x.id;
+      const dd = document.createElement('dd'); dd.textContent = `${x.state} · ${x.steps_consumed}/${x.steps_budget}`;
+      row.append(dt, dd);
+      box.appendChild(row);
+    }
+  }
+}
+function renderAgentAfterRun() {
+  const r = window.__lastRun;
+  if (!r) return;
+  const line = `${r.task} → ${r.status} · ${r.turns} turns`;
+  const a = document.getElementById('aLastRun');
+  if (a) a.textContent = line;
+  const box = document.getElementById('hTasks');
+  if (box && !box.dataset.grove) {
+    box.textContent = '';
+    const row = document.createElement('div');
+    row.className = 'kv';
+    const dt = document.createElement('dt'); dt.textContent = '本页最近';
+    const dd = document.createElement('dd'); dd.textContent = line;
+    row.append(dt, dd);
+    box.appendChild(row);
+  }
+}
+/* Home · Currently working:教学端口的最近调用(与 Observe 同一份 events) */
+function renderWorking() {
+  const box = document.getElementById('hWorking');
+  if (!box) return;
+  const calls = [];
+  for (let i = events.length - 1; i >= 0 && calls.length < 3; i--)
+    if (events[i].kind === 'call') calls.push(events[i]);
+  if (!calls.length) return;
+  box.textContent = '';
+  for (const ev of calls.reverse()) {
+    const row = document.createElement('div');
+    row.className = 'kv';
+    const dt = document.createElement('dt');
+    const ph = phaseOf(ev.name);
+    dt.textContent = (ph ? ph[1] + ' · ' : '') + ev.name;
+    const dd = document.createElement('dd');
+    dd.textContent = `agent.zio:${ev.line}`;
+    row.append(dt, dd);
+    box.appendChild(row);
+  }
+}
+setInterval(renderWorking, 1200);
+renderWorking();
 ztTheme.apply(ztTheme.get());
 </script>
 </body>
