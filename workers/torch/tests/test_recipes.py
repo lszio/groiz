@@ -37,12 +37,13 @@ from pathlib import Path
 import torch
 
 ROOT = Path(__file__).resolve().parents[3]
-# The Zio checkout this repository builds against: the sibling directory the
-# workspace path dependencies name. The library declarations and the CLI the
-# tests drive live there, not here.
+# The Zio checkout this repository builds against: the `zio/` submodule,
+# which is where the workspace path dependencies point. The library
+# declarations and the CLI the tests drive live there, not here. A
+# sibling `../zio` is the development checkout and wins when present.
 ZIO = ROOT.parent / "zio"
-if not ZIO.is_dir():
-    ZIO = ROOT
+if not (ZIO / "Cargo.toml").is_file():
+    ZIO = ROOT / "zio"
 WORKER = ROOT / "workers" / "torch"
 TASK = ROOT / "examples" / "self-learning"
 DATA = TASK / "data"
