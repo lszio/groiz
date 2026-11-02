@@ -13,15 +13,21 @@ set -euo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$HERE/.." && pwd)"
 
-# The Zio checkout this repository builds against. It is the sibling
-# directory by default; ZIO_ROOT names it explicitly, which is also how an
-# installed tree (share/zio + bin/zio on PATH) is selected.
+# The Zio checkout this repository builds against. The `zio/` submodule is
+# the default; a sibling `../zio` is preferred when present, because that
+# is the development checkout (`git submodule update --remote` moves the
+# submodule to dev, but a side-by-side clone is what a developer edits).
+# ZIO_ROOT names it explicitly, which is also how an installed tree
+# (share/zio + bin/zio on PATH) is selected.
 ZIO_ROOT="${ZIO_ROOT:-}"
 if [ -z "$ZIO_ROOT" ] && [ -d "$(dirname "$ROOT")/zio" ]; then
   ZIO_ROOT="$(cd "$(dirname "$ROOT")/zio" && pwd)"
 fi
+if [ -z "$ZIO_ROOT" ] && [ -d "$ROOT/zio" ]; then
+  ZIO_ROOT="$ROOT/zio"
+fi
 if [ -z "$ZIO_ROOT" ] || [ ! -d "$ZIO_ROOT/langs/core" ]; then
-  echo "no Zio checkout: set ZIO_ROOT (looked at $(dirname "$ROOT")/zio)" >&2
+  echo "no Zio checkout: set ZIO_ROOT (looked at $(dirname "$ROOT")/zio and $ROOT/zio)" >&2
   exit 2
 fi
 

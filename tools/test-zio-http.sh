@@ -7,7 +7,13 @@
 set -euo pipefail
 
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-zio_root="${ZIO_ROOT:-$(cd "$root/../zio" && pwd)}"
+# The `zio/` submodule is the default; a sibling checkout wins when present,
+# because that is the development tree a contributor edits.
+if [ -z "${ZIO_ROOT:-}" ] && [ -d "$root/../zio" ]; then
+  zio_root="$(cd "$root/../zio" && pwd)"
+else
+  zio_root="${ZIO_ROOT:-$root/zio}"
+fi
 zio_bin="${ZIO_BIN:-$zio_root/target/debug/zio-cli}"
 [ -x "$zio_bin" ] || { echo "no zio CLI: cargo build -p zio-cli in $zio_root" >&2; exit 2; }
 test_dir="$(mktemp -d)"

@@ -1,0 +1,17 @@
+# Context hygiene, not a per-image filter: one context serves this
+# Dockerfile and the compose overrides. A pattern here that excludes
+# something the image COPYs makes the build fail with "not found" pointing
+# at the Dockerfile rather than at this file.
+#
+# So only ballast is listed: build output, caches, VCS metadata and the
+# local machine state that must never reach an image.
+#
+# The `zio/` submodule IS part of the context — the image builds the Zio
+# CLI from it — so it is not excluded. Its own `.git` is.
+target
+**/target
+.venv
+**/__pycache__
+**/node_modules
+**/.git
+**/.DS_Store

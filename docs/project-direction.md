@@ -10,7 +10,7 @@
 |---|---|---|
 | PLC Blueprint Learning（公司论文） | 基于可执行蓝图与反馈学习的 PLC 工程生成；独立 Typst 论文工程 | 可复用经授权的通用机制；基于 coder 自行启动，不等待 GROIZ |
 | [Executable Knowledge Learning（个人论文）](../../executable-learning-paper/README.md) | 基于可执行知识与程序演化的智能体持续学习；独立 Typst 论文工程 | 当前最直接消费者；实验可在本仓运行，但论文名称、协议、结果与正文独立维护 |
-| [Zio](../../zio/docs/project-direction.md) | 通用语言、工具链、宿主机制和通用库 | 核心表达与执行基础，不吸收 GROIZ 的评价、发布或实验业务 |
+| [Zio](../zio/docs/project-direction.md) | 通用语言、工具链、宿主机制和通用库 | 核心表达与执行基础，不吸收 GROIZ 的评价、发布或实验业务 |
 | GROIZ | 经验、认知程序、学习运行、候选、评价与版本治理 | 现在闭合研究运行路径，第二阶段沉淀可复用框架 |
 | [Zioo](../../zioo/README.md) | 独立数字生命与个人助理应用 | 消费框架，不共享宠物 UI、游戏规则或平台生命周期实现 |
 

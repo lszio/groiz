@@ -4,7 +4,7 @@ GROIZ（仓库名 `groiz`，内部 crate `grove` / `grove-app`）是研究运行
 
 ## 前置
 
-- 本仓通过路径依赖指向同级 `../zio`，两个仓库必须并排克隆。改 Zio 的行为时，先在 Zio 仓按它的 `AGENTS.md` 走。
+- 本仓通过路径依赖指向 `zio/` 子模块（`git submodule update --init --recursive` 拉取，需要 use-zio/zio 的读权限）。改 Zio 的行为时，先在 Zio 仓按它的 `AGENTS.md` 走；对着开发分支做时用 `git submodule update --remote zio`。
 - 设计、当前事实与缺口在 `/home/lszio/Notes/projects/research-and-digital-life/projects/groiz/README.md`；那是 Notes 侧摘要，不是可以替代验收的证据。
 - 任务真值以 paca 与本仓 `docs/` 为准；不要在仓库里另建并行清单。
 

@@ -278,9 +278,9 @@ pub struct Paths {
     /// requests resolve the same way from any harness.
     pub root: PathBuf,
     /// The Zio checkout this application loads its `libs/**` modules from:
-    /// the sibling directory the workspace path dependencies already name,
-    /// and the same root the launcher grants as `--app-share`. A tree that
-    /// carries its own `libs/` is its own share.
+    /// the `zio/` submodule by default, and the same root the launcher
+    /// grants as `--app-share`. A tree that carries its own `libs/` is its
+    /// own share.
     pub share: PathBuf,
 }
 
@@ -292,11 +292,15 @@ impl Paths {
             .nth(2)
             .unwrap()
             .to_path_buf();
+        // A sibling `../zio` is the development checkout and wins when it
+        // is there; otherwise the submodule inside the repository is the
+        // share. The repository root itself is the last resort: it has no
+        // `libs/`, so loading `libs.**` from it fails.
         let share = root
             .parent()
             .map(|siblings| siblings.join("zio"))
-            .filter(|sibling| sibling.is_dir())
-            .unwrap_or_else(|| root.clone());
+            .filter(|sibling| sibling.join("libs").is_dir())
+            .unwrap_or_else(|| root.join("zio"));
         Self {
             python: root.join(".venv/bin/python"),
             generate: root.join("examples/self-learning/generate.py"),

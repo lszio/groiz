@@ -18,8 +18,8 @@ concurrency:
   cancel-in-progress: true
 
 # Groiz is standalone: the workspace resolves `zio-core` and `loom` through
-# the sibling directory `../zio`, so both repositories are checked out side
-# by side and every command runs from this one.
+# the `zio/` submodule, so the checkout brings the Zio revision with it and
+# every command runs from this repository.
 defaults:
   run:
     working-directory: groiz
@@ -32,10 +32,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           path: groiz
-      - uses: actions/checkout@v4
-        with:
-          repository: use-zio/zio
-          path: zio
+          submodules: recursive
+          # The `zio/` submodule points at a private repository, so the
+          # default GITHUB_TOKEN cannot read it. This token is scoped to
+          # read-only access to use-zio/zio.
+          token: ${{ secrets.ZIO_REPO_TOKEN }}
 
       - name: Install toolchain
         uses: dtolnay/rust-toolchain@stable
@@ -43,12 +44,12 @@ jobs:
           components: rustfmt, clippy
 
       # Both workspaces build here: the worker tests drive the Zio CLI, and
-      # the Zio CLI builds in the sibling checkout.
+      # the Zio CLI builds in the submodule checkout.
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: |
             groiz
-            zio
+            groiz/zio
 
       - name: Build
         run: cargo build --workspace --all-targets
@@ -97,16 +98,14 @@ jobs:
       - uses: actions/checkout@v4
         with:
           path: groiz
-      - uses: actions/checkout@v4
-        with:
-          repository: use-zio/zio
-          path: zio
+          submodules: recursive
+          token: ${{ secrets.ZIO_REPO_TOKEN }}
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: |
             groiz
-            zio
+            groiz/zio
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -118,18 +117,15 @@ jobs:
             --index-url https://download.pytorch.org/whl/cpu \
             -r workers/torch/requirements.txt
 
-      # The launcher runs the Zio CLI from the sibling checkout, so it has
+      # The launcher runs the Zio CLI from the submodule checkout, so it has
       # to be built there — debug, which is what tools/groiz looks for
       # first in a checkout.
       - name: Build the Zio CLI
-        working-directory: zio
+        working-directory: groiz/zio
         run: cargo build -p zio-cli
 
       - name: HTTP contract (launcher, routing, auth, request lifecycle)
         run: bash tools/test-zio-http.sh
 
       - name: Deployment (image build, owner execution, restart persistence)
-        run: |
-          # Build the image against the exact Zio revision this run tested
-          # rather than whatever the default branch says later.
-          ZIO_REF="$(git -C ../zio rev-parse HEAD)" bash tools/test-deployment.sh
+        run: bash tools/test-deployment.sh
