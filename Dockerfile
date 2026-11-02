@@ -3,13 +3,21 @@
 # language pages) is a separate repository and owns the public origin and
 # the `/wasm/*` bundle; Groiz serves only its own control plane.
 #
-# Zio is fetched from GitHub rather than read out of the build context:
-# this repository is standalone, and a Docker build only ever sees its own
-# directory. ZIO_REF names the revision to build against — a branch, tag or
-# commit — and must accept `--app-env`, which is how the launcher grants its
-# token names.
+# Zio arrives as the `zio/` git submodule (see .gitmodules), whose pinned
+# revision is the exact Zio this image builds against. The build host must
+# fetch it with credentials for use-zio/zio — an anonymous clone of a
+# private repository is not a build, it is a 404. `git submodule update
+# --remote zio` moves the submodule to the development branch.
 FROM rust:1-bookworm AS zio-build
-ARG ZIO_REF=main
+WORKDIR /src/zio
+COPY zio /src/zio
+# A submodule that was not fetched leaves an empty directory here, and the
+# build would then fail somewhere inside cargo with a message about a
+# missing manifest. Say what actually went wrong instead.
+RUN test -f langs/core/Cargo.toml || { \
+      echo "the zio/ submodule is empty: fetch it with credentials for use-zio/zio" >&2; \
+      exit 1; \
+    }
 # libclang is the same build dependency the Zio image needs: zio-js binds
 # QuickJS with rquickjs' `bindgen` feature.
 RUN apt-get update \

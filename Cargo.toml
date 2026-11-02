@@ -1,12 +1,17 @@
 [workspace]
 resolver = "2"
 members = ["native/learning", "native/app"]
+# The `zio/` submodule is its own cargo workspace. Without this, cargo
+# resolves the submodule's manifests against THIS workspace root, and the
+# crates there inherit `workspace = true` fields (zio-core) that this
+# manifest does not define.
+exclude = ["zio"]
 
-# Groiz is a standalone repository: the Zio checkout it builds against sits
-# in the sibling directory `../zio` (the path dependencies in
-# `native/*/Cargo.toml` name it explicitly), and its Zio sources, libraries
-# and toolchain come from there. Clone both side by side or the workspace
-# will not resolve.
+# Groiz is a standalone repository. The Zio checkout it builds against is
+# the `zio/` submodule (the path dependencies in `native/*/Cargo.toml` name
+# it explicitly), pinned to a release tag so a build is reproducible.
+# `git submodule update --init --recursive` fetches it; for language work
+# against the development branch, run `git submodule update --remote zio`.
 [workspace.package]
 version = "0.2.0"
 edition = "2024"

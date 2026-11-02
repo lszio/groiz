@@ -1,7 +1,7 @@
 # grove 整体设计
 
-> 状态：产品合同设计；2026-10-07 目录归属以[当前架构](../../zio/docs/zio-architecture.md)为准。G02 agent/生成执行与 G04 人工批准的已有证据见[特性矩阵](../../zio/docs/feature-matrix.md)；服务贯通、ACP 与 Rust Groiz 业务迁为 Zio 仍需分别验收。
-> 初始设计日期：2026-10-02。实现状态以 [特性矩阵](../../zio/docs/feature-matrix.md) 为准；定位与升级权限以 [ADR-019](../../zio/docs/adrs.md#adr-019-grove-独立应用与同像性逻辑演化) 为准。
+> 状态：产品合同设计；2026-10-07 目录归属以[当前架构](../zio/docs/zio-architecture.md)为准。G02 agent/生成执行与 G04 人工批准的已有证据见[特性矩阵](../zio/docs/feature-matrix.md)；服务贯通、ACP 与 Rust Groiz 业务迁为 Zio 仍需分别验收。
+> 初始设计日期：2026-10-02。实现状态以 [特性矩阵](../zio/docs/feature-matrix.md) 为准；定位与升级权限以 [ADR-019](../zio/docs/adrs.md#adr-019-grove-独立应用与同像性逻辑演化) 为准。
 > 统一命名：独立应用与命令为 `grove`；当前内部宿主 crate 为 `grove`（`native/learning/`），应用 crate 为 `grove-app`（`native/app/`）。代码可组织为库，但 Groiz 不以通用学习库或可选产品壳为第一身份。
 > 已确认方向：Groiz 是消费 Numa（计算）、Rill（CLI）、Loom（harness/ACP）的独立应用；三个库由官方维护、按需消费，不属于语言内置。首个产品验收是 Zio agent 逻辑、LLM 生成执行、站点审查与人工批准升级。
 > 演进方向：源码、向量表示、神经网络和 LLM 模块逐步加入；保留已有训练、检查点、谱系与组合能力，不要求所有模型类型先实现后才能交付首条主线。
@@ -35,7 +35,7 @@ Groiz 是独立的自学习与逻辑演化应用，不是“通用学习库 + �
 
 ### 1.2 与已有设计的关系
 
-本文承接 [程序合成计划](../../zio/docs/synthesis-plan.md)，描述其范围之外的多源学习与代码/权重联合演化，不替换现有 L1–L4 实现状态。
+本文承接 [程序合成计划](../zio/docs/synthesis-plan.md)，描述其范围之外的多源学习与代码/权重联合演化，不替换现有 L1–L4 实现状态。
 
 本次定位修订由 ADR-019 记录；ADR-016 的算术候选合同继续有效，ADR-017/018 的宿主安全与身份合同继续复用：
 
@@ -55,7 +55,7 @@ Groiz 是独立的自学习与逻辑演化应用，不是“通用学习库 + �
 | Groiz 独立应用 | 模块组织、反馈与实验、学习运行、版本/检查点/谱系、审查批准、教师适配与站点 | 重复实现语言、数值引擎或第二套通用 agent 执行循环 |
 | 可信宿主 | 持久事务、授权、制品、隔离、资源限制、受保护的验证与发布执行 | 接受候选自行改变安全边界或独立评价合同 |
 
-Zio 库目标采用 Zio 实现并归入 Zio 检出的 `../zio/libs/`：Numa 持计算，Rill 持 CLI 组合，Loom 持 harness 组合。现有 Rust 通用传输/宿主合同位于 `../zio/contribs/native/loom/`，不是 Zio 库本体；普通语言 CLI 位于 `../zio/langs/cli/`，不装配 LLM replay。Groiz 是本仓库根目录的独立应用，其 Rust 业务仍待后续迁为 Zio；语言介绍、文档与 playground 位于 `../zio/apps/site/`。本轮只完成结构切换，不证明完整库交付、Tree-sitter、LSP 或编译器自举。当前合同见[架构](../../zio/docs/zio-architecture.md)与[批准目录计划](../../zio/docs/superpowers/plans/2026-10-07-language-first-layout.md)。短名不等于已注册包 ID。
+Zio 库目标采用 Zio 实现并归入 Zio 检出的 `../zio/libs/`：Numa 持计算，Rill 持 CLI 组合，Loom 持 harness 组合。现有 Rust 通用传输/宿主合同位于 `../zio/contribs/native/loom/`，不是 Zio 库本体；普通语言 CLI 位于 `../zio/langs/cli/`，不装配 LLM replay。Groiz 是本仓库根目录的独立应用，其 Rust 业务仍待后续迁为 Zio；语言介绍、文档与 playground 位于 `../zio/apps/site/`。本轮只完成结构切换，不证明完整库交付、Tree-sitter、LSP 或编译器自举。当前合同见[架构](../zio/docs/zio-architecture.md)与[批准目录计划](../zio/docs/superpowers/plans/2026-10-07-language-first-layout.md)。短名不等于已注册包 ID。
 
 候选生成与训练可在预先批准的预算、触发规则和可修改范围内自动进行；独立评价只产生发布资格，正式发布默认需要人工批准。批准绑定候选及评价版本，受授权控制器重新检查硬门槛和预期旧版本后原子切换；人工同意也不能绕过保护。
 
@@ -486,4 +486,4 @@ P1–P4 是历史交付计划的编号，不重命名 L1–L4，也不替代新�
 | [LoRA](https://arxiv.org/abs/2106.09685) | 作为参数高效适配的一种学习方法 | 不视为代码结构演化或所有训练需求的替代 |
 | [Population Based Training](https://arxiv.org/abs/1711.09846) | 固定总预算下多分支训练、继承优秀状态并探索超参数 | 不假定不同代码结构/权重都可直接继承，不将训练种群自动等同于推理集成 |
 
-仓库依据：[学习器](../../zio/libs/learning/learn.zio)、[提议器](../../zio/libs/loom/proposer.zio)、[宿主协议](../../zio/contribs/native/loom/src/lib.rs)、[特性矩阵](../../zio/docs/feature-matrix.md)、[ADR](../../zio/docs/adrs.md)。
+仓库依据：[学习器](../zio/libs/learning/learn.zio)、[提议器](../zio/libs/loom/proposer.zio)、[宿主协议](../zio/contribs/native/loom/src/lib.rs)、[特性矩阵](../zio/docs/feature-matrix.md)、[ADR](../zio/docs/adrs.md)。

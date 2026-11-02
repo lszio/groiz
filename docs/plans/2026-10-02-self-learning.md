@@ -1,11 +1,11 @@
 # Grove 历史组件交付记录 — P1–P4 / W00–W17
 
-> Historical document: paths, commands and delivery claims below describe their original date. The 2026-10-07 language-first cutover supersedes directory and library ownership targets; see [current architecture](../../../zio/docs/zio-architecture.md) and [approved layout plan](../../../zio/docs/superpowers/plans/2026-10-07-language-first-layout.md). Rust Grove business migration remains outstanding.
+> Historical document: paths, commands and delivery claims below describe their original date. The 2026-10-07 language-first cutover supersedes directory and library ownership targets; see [current architecture](../../zio/docs/zio-architecture.md) and [approved layout plan](../../zio/docs/superpowers/plans/2026-10-07-language-first-layout.md). Rust Grove business migration remains outstanding.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `subagent-driven-development` or `executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 > 历史基线：初始计划 2026-10-02；定位与开工顺序由 2026-10-05 的
-> [统一实现计划](2026-10-05-zio-grove-convergence.md)和 [ADR-019](../../../zio/docs/adrs.md#adr-019-grove-独立应用与同像性逻辑演化) 更新。
+> [统一实现计划](2026-10-05-zio-grove-convergence.md)和 [ADR-019](../../zio/docs/adrs.md#adr-019-grove-独立应用与同像性逻辑演化) 更新。
 > `grove` 是独立应用，`native/learning/` 与 `app/` 是内部宿主/应用组织，不再以学习库优先交付。
 >
 > **2026-10-05 命名同步**：Numa（计算）、Rill（CLI 组合）、Loom（Agent
@@ -14,7 +14,7 @@
 > 人工批准、逻辑演化和 Web，语言核心无反向依赖。三库新增能力仍 Planned。
 > 当前 `zio-ai`/（Zio 检出 `../zio/ai/`）是 Loom 的起点，`zio-cli`/（Zio 检出 `../zio/langs/cli/`）是未来消费 Rill
 > 的可执行宿主；本页保留历史源码路径、包名、命令、合同和交付证据。
-> 未来目录/逻辑命名空间见[术语表](../../../zio/docs/glossary.md)，正式短名不是已确认注册包 ID，
+> 未来目录/逻辑命名空间见[术语表](../../zio/docs/glossary.md)，正式短名不是已确认注册包 ID，
 > 不替换为尚不存在的安装或 Cargo 命令，也不另起 agent/学习框架。
 
 **Goal（历史范围）:** 交付 Zio 自学习组件及本地 CPU demo，实现多源反馈、代码/权重联合学习、检查点、群体和模块协作。下面保留原组件证据，不代表新 agent 产品主线已实现。
@@ -28,7 +28,7 @@
 ## 1. 状态与使用方式
 
 - 本文件保留历史任务、原证据与后续审核修正；不再作为新的开工计划。
-- 当前架构依据[整体设计](../self-learning-architecture.md)及 ADR-019，状态见[特性矩阵](../../../zio/docs/feature-matrix.md)。
+- 当前架构依据[整体设计](../self-learning-architecture.md)及 ADR-019，状态见[特性矩阵](../../zio/docs/feature-matrix.md)。
 - 历史通过的 demo/组件检查仍有效；未完成的强制隔离、真实服务 runner、冻结保护与截图验收在本页明确取消完成标记，并映射到新计划。
 - 每个工作包提供目标文件、合同、行为测试和实际运行证据。文中的新命令、新文件和测试名是实施目标，不能在文件尚未建立时当作可执行现状。
 - 不在规划阶段预写整套实现。执行每个工作包时先读取受影响代码与宿主合同；修改现有符号前完成仓库要求的影响分析，使用可用 LSP 查引用；提交前执行影响范围检测。

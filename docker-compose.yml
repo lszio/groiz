@@ -6,11 +6,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      args:
-        # The Zio revision the image builds against. Defaults to the Zio
-        # default branch; CI and tools/test-deployment.sh pass a concrete
-        # revision so the image matches what the contracts ran against.
-        ZIO_REF: "${ZIO_REF:-main}"
     restart: unless-stopped
     environment:
       GROIZ_ROOT: /srv/grove/data

@@ -1,0 +1,4 @@
+[submodule "zio"]
+	path = zio
+	url = https://github.com/use-zio/zio.git
+	branch = dev

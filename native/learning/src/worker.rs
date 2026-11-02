@@ -707,20 +707,31 @@ fn apply_limits(command: &mut Command, max_address_space: u64) {
     use std::os::unix::process::CommandExt;
     unsafe {
         command.pre_exec(move || {
-            let set = |resource: u32, value: u64| -> std::io::Result<()> {
+            // The RLIMIT_* constants are c_int on BSD (macOS) and u32 on
+            // Linux, and the resource type is not nameable in one spelling
+            // across both. Each call passes the constant straight to
+            // `setrlimit`, so the compiler takes the platform's own type
+            // without this code naming it.
+            let set = |value: u64| -> std::io::Result<()> {
                 let limit = libc::rlimit {
                     rlim_cur: value,
                     rlim_max: value,
                 };
-                if libc::setrlimit(resource, &limit) == 0 {
+                if libc::setrlimit(libc::RLIMIT_AS, &limit) == 0 {
                     Ok(())
                 } else {
                     Err(std::io::Error::last_os_error())
                 }
             };
-            set(libc::RLIMIT_AS, max_address_space)?;
+            set(max_address_space)?;
             // RLIMIT_CPU: a backstop behind the wall clock
-            set(libc::RLIMIT_CPU, 3600)?;
+            let cpu_limit = libc::rlimit {
+                rlim_cur: 3600,
+                rlim_max: 3600,
+            };
+            if libc::setrlimit(libc::RLIMIT_CPU, &cpu_limit) != 0 {
+                return Err(std::io::Error::last_os_error());
+            }
             libc::setpgid(0, 0);
             Ok(())
         });

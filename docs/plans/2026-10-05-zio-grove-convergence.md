@@ -1,6 +1,6 @@
 # Zio / Numa / Rill / Loom / Grove 架构收敛 Implementation Plan
 
-> Historical document: paths, commands and delivery claims below describe their original date. The 2026-10-07 language-first cutover supersedes directory and library ownership targets; see [current architecture](../../../zio/docs/zio-architecture.md) and [approved layout plan](../../../zio/docs/superpowers/plans/2026-10-07-language-first-layout.md). Rust Grove business migration remains outstanding.
+> Historical document: paths, commands and delivery claims below describe their original date. The 2026-10-07 language-first cutover supersedes directory and library ownership targets; see [current architecture](../../zio/docs/zio-architecture.md) and [approved layout plan](../../zio/docs/superpowers/plans/2026-10-07-language-first-layout.md). Rust Grove business migration remains outstanding.
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `subagent-driven-development` or `executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -16,8 +16,8 @@
 
 本计划 2026-10-05 制定，**18 个工作包**。T00、G00、H00、G01、G02、G03、G04 已实施并通过验收（见各节完成记录），其余 11 个仍为 Planned。这是当前唯一实施清单，不是新的平行架构，也不是实验报告。
 
-- 架构和治理：[ADR-019](../../../zio/docs/adrs.md#adr-019-grove-独立应用与同像性逻辑演化)、[语言架构](../../../zio/docs/zio-architecture.md)、[Grove 整体设计](../self-learning-architecture.md)。
-- 当前状态：[特性矩阵](../../../zio/docs/feature-matrix.md)、[生成的项目状态](../../../zio/docs/status.md)。历史 [W00–W17](2026-10-02-self-learning.md) 和 [L1–L4](../../../zio/docs/synthesis-plan.md) 保留编号与原证据，不代替本计划。
+- 架构和治理：[ADR-019](../../zio/docs/adrs.md#adr-019-grove-独立应用与同像性逻辑演化)、[语言架构](../../zio/docs/zio-architecture.md)、[Grove 整体设计](../self-learning-architecture.md)。
+- 当前状态：[特性矩阵](../../zio/docs/feature-matrix.md)、[生成的项目状态](../../zio/docs/status.md)。历史 [W00–W17](2026-10-02-self-learning.md) 和 [L1–L4](../../zio/docs/synthesis-plan.md) 保留编号与原证据，不代替本计划。
 - 下文 **Existing** 表示已读到的接口；**Target** 的文件、字段、命令和测试在相应包完成后才能调用。不要现在执行尚未创建的测试或命令。
 - 每包按“消费者可见的失败检查 → 最小实现 → 定向验证 → 真实 smoke → 更新实际状态”执行。代码块固定合同、用例或关键逻辑，不预写整套未经源码核对的实现；实施时不得留下占位 API、空模块、伪执行或假回退。
 - 修改现有符号前必须执行 GitNexus upstream impact 并报告调用者/流程/风险；导出 API 改变前查询 LSP references。HIGH/CRITICAL 先告知风险。当前文档规划没有符号修改；实施时不能以曾经无法访问工具为理由绕过此门槛。

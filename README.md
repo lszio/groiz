@@ -7,19 +7,27 @@
 
 ## 与 Zio 的关系
 
-本仓库的 workspace 通过路径依赖指向同级的 Zio 检出（`native/*/Cargo.toml` 里的
-`../../../zio/langs/core` 与 `../../../zio/contribs/native/loom`），所以两个仓库要
-并排克隆：
+本仓库的 workspace 通过路径依赖指向 `zio/` 子模块里的 Zio 检出
+（`native/*/Cargo.toml` 里的 `../../zio/langs/core` 与
+`../../zio/contribs/native/loom`）。子模块固定一个确定的修订，所以一次构建
+可复现；Zio 仓库是私有的，克隆它需要凭据：
 
 ```sh
-git clone https://github.com/use-zio/zio.git
 git clone https://github.com/use-zio/groiz.git
 cd groiz
+git submodule update --init --recursive   # 需要 use-zio/zio 的读权限
 cargo test --workspace
 ```
 
-`tools/groiz` 启动器同样默认使用同级 Zio 检出的 CLI（`ZIO_ROOT`、`ZIO_BIN` 可显式
-指向别处，包括已安装的发行树）。
+要对着 Zio 的开发分支工作，把子模块移到 `dev`：
+
+```sh
+git submodule update --remote zio
+```
+
+`tools/groiz` 启动器默认使用子模块里的 Zio CLI；同级 `../zio` 检出存在时优先用它
+（那通常是开发者正在改的树）。`ZIO_ROOT`、`ZIO_BIN` 可显式指向别处，包括已安装的
+发行树。
 
 ## 布局
 
@@ -27,6 +35,7 @@ cargo test --workspace
   `store.zio`／`runner.zio`／`selection.zio` 等业务层
 - `native/learning` — `grove` 库：评估、集成、检查点、治理学习
 - `native/app` — `grove-app`：CLI/HTTP 应用壳
+- `zio/` — Zio 子模块（固定修订；`git submodule update --remote zio` 移到 dev）
 - `web/` — 控制台静态资源；`workers/torch/` — 张量 worker
 - `examples/self-learning/` — 冻结验收任务（生成器、分组切分、冻结门槛）
 - `docs/` — 整体设计、交付计划与部署规格；`tools/` — 启动器与真实合同脚本
@@ -34,8 +43,8 @@ cargo test --workspace
 ## 运行
 
 ```sh
-# 1. Zio CLI（启动器默认找 ../zio/target/{release,debug}/zio-cli）
-(cd ../zio && cargo build -p zio-cli)
+# 1. Zio CLI（启动器默认找 zio/target/{release,debug}/zio-cli）
+(cd zio && cargo build -p zio-cli)
 
 # 2. 带 torch 的解释器：训练 worker 与张量后端都用它
 python3 -m venv .venv
