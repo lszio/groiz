@@ -40,7 +40,36 @@
   "backend-failed" 502 "protocol-violation" 400
 } class 500))
 
-(defn api--reply [request status body] (host/http-reply (get request :listener) (get request :id) {:status (api--status status) :headers {"content-type" "application/json"} :body (json-stringify body)}))
+;; The landing page (groiz.lszio.space) is the one cross-origin reader,
+;; and it reads — never triggers: health liveness and the token-bearing
+;; reader view of the ledger. Operator authority (POSTs, publishing)
+;; stays same-origin: the console ships from this very surface. The
+;; allowlist is the boundary, not a reflection of the request's Origin.
+(def api--cors-origin "https://groiz.lszio.space")
+
+(defn api--cors-path? [path]
+  (or (= path "/api/health") (= path "/api/runs") (= path "/api/events")))
+
+(defn api--reply [request status body]
+  (host/http-reply (get request :listener) (get request :id)
+    {:status (api--status status)
+      :headers (if (api--cors-path? (get request :path ""))
+                 {"content-type" "application/json"
+                   "access-control-allow-origin" api--cors-origin}
+                 {"content-type" "application/json"})
+      :body (json-stringify body)}))
+
+(defn api--preflight [request]
+  ;; A browser preflights anything that carries an Authorization header
+  ;; (the optional reader-token view on the landing page). Answer once,
+  ;; answer narrowly: GET, credentials by header, no wildcards.
+  (host/http-reply (get request :listener) (get request :id)
+    {:status 204
+      :headers {"access-control-allow-origin" api--cors-origin
+                "access-control-allow-methods" "GET"
+                "access-control-allow-headers" "authorization"
+                "access-control-max-age" "600"}
+      :body ""}))
 
 (defn api--ok [request body] (api--reply request "ok" body))
 (defn api--created [request body] (api--reply request "created" body))
@@ -779,7 +808,9 @@
                             :web_root (get config :web-root "")
                             :listener (get next :listener)
                             :id (get raw :id)}]
-              (if (and (nil? role) (not (api--public-path path)))
+              (if (and (= method "OPTIONS") (api--cors-path? path))
+                (api--preflight request)
+                (if (and (nil? role) (not (api--public-path path)))
                 (api--error request "unauthorized" "missing or unknown bearer token" nil)
                 (try
                   (api--route request)
@@ -790,7 +821,7 @@
                     (if (= (runner--error-detail (str *error*)) api--replayed)
                       nil
                       (let [refusal (api--refusal *error*)]
-                        (api--error request (get refusal :class "backend-failed") (get refusal :detail "") nil))))))
+                        (api--error request (get refusal :class "backend-failed") (get refusal :detail "") nil)))))))
               (recur next))))))))
 
 (defn api--check-bind [bind token-count]

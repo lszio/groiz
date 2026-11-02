@@ -1,9 +1,14 @@
 # Groiz
 
-治理学习应用：评估、路由、蒸馏与发布治理。Groiz 以 [Zio](https://github.com/use-zio/zio)
-为语言基础，以 [Loom](https://github.com/use-zio/zio/tree/main/contribs/native/loom)
-为模型 harness，作为**独立仓库**开发与发布：Zio 侧只保留语言与库，站点、仓库内
-的 compose/nginx/CI 都不再承载 Groiz。
+自学习与程序演化运行平台：当前复用已有评估、训练、检查点与发布治理能力，
+先服务可复现研究，第二阶段沉淀为可被不同应用调用的智能体框架。
+Groiz 以 [Zio](https://github.com/use-zio/zio) 为语言基础，
+以 [Loom](https://github.com/use-zio/zio/tree/main/contribs/native/loom) 为模型 harness，
+作为**独立仓库**开发与发布，不进入 Zio 语言发行树。
+
+2026-10-25 [项目方向](docs/project-direction.md)明确两篇论文、Zio、GROIZ 与独立应用
+Zioo 的分工。框架是演进目标，不代表当前部署入口已经完成程序学习、独立评价与晋升闭环；
+已有组件、native 入口与 Zio 部署入口分别验收。
 
 ## 与 Zio 的关系
 
@@ -62,13 +67,48 @@ export GROIZ_TOKEN_READER=reader-1 GROIZ_TOKEN_OPERATOR=operator-1 \
 `GROIZ_TOKEN_{READER,ANNOTATOR,OPERATOR,PUBLISHER}`；未设置任何令牌时，非
 loopback 地址会被拒绝绑定（见 `api.zio`）。
 
+## Agent 循环
+
+`grove run` 驱动真实的 agent 循环：任务与授权上下文 → 模型生成 Zio 候选 →
+隔离执行 → 失败证据回给模型修订 → 停在 turn 上限。循环判定逻辑是
+`libs/loom/agent.zio` 的 `agent-run`；回复→源码契约（模型回复的候选提取、
+prompt 形状）单点定义在 `libs/loom/candidate.zio`，两个宿主绑定的参考实现
+也在那里，由运行方装配：
+
+- **启动器路径**（`tools/groiz run`）：`agent.zio` 把 loom 的参考绑定装配到
+  provider 配置与启动器授权上——`host/http-request` 调 OpenAI 兼容接口，
+  `host/process-start` 把候选放进 jail 执行，候选以 `zio --emit-framed`
+  的单帧 JSON 信封回报结果。需要 Linux namespaces；其他平台执行会诚实拒绝
+  （`capability-denied`），循环把该失败当证据继续。
+- **Rust 路径**（`grove-app` 的 AgentHost，`cargo test` 覆盖）：绑定由
+  Rust 侧装配——模型走 Loom session（测试用脚本化 ModelHost），候选走
+  `grove::execution` 沙箱；回复提取用 `libs/loom/candidate.zio` 契约的
+  Rust 镜像，两侧案例表逐条对拍。
+
+```sh
+# provider 配置：OpenAI 兼容端点，放在授予的读根内（数据根或仓库根）
+cat > /tmp/groiz-root/provider.json <<'EOF'
+{"baseURL": "https://api.openai.com/v1", "model": "gpt-4o-mini"}
+EOF
+
+export GROIZ_TOKEN_READER=reader-1 GROIZ_TOKEN_OPERATOR=operator-1 \
+       GROIZ_TOKEN_PUBLISHER=publisher-1 GROIZ_TOKEN_ANNOTATOR=annotator-1
+export GROIZ_LLM_API_KEY=sk-...          # 启动器通过 --app-env 授予
+export GROIZ_ROOT=/tmp/groiz-root        # 数据根；provider.json 在其下
+./tools/groiz run --task "..." \
+  --provider-config /tmp/groiz-root/provider.json --max-turns 3
+```
+
+候选的执行上限由启动器决定（step ceiling、墙钟、jail），不是候选自己选的；
+每次执行的暂存与结果留在数据根 `worker-scratch/agent/` 下作为证据。
+
 ## 真实合同
 
-| 脚本 | 证明什么 |
+| 检查入口 | 覆盖范围（不表示本次已经执行） |
 |---|---|
 | `tools/test-zio-http.sh` | 通过启动器起真实服务：路由、动态路径与查询解码、角色授权、幂等/冲突回执、owner 真正执行队列、worker 隔离与否的诚实结果 |
 | `tools/test-deployment.sh` | 构建镜像后：控制面可达、无令牌 401、reader 可读、排队任务被 owner 消费、重启后 store 仍回答 |
-| `tools/smoke-logic-approval.py` | 人工批准边界：受保护区提案被拒、operator 触不到批准、publisher 批准合格候选且回执/版本可复现 |
+| `tools/smoke-logic-approval.py` | native `grove-app` 的人工批准边界：受保护区提案被拒、角色隔离、合格候选批准与版本回执；不能代替 Zio 部署入口验收 |
 | `cargo test --workspace` | 库与应用合同；需要 namespace 与 `.venv` 的用例缺少前置时显式 skip，绝不谎报通过 |
 
 ## 部署
@@ -85,7 +125,8 @@ loopback 地址会被拒绝绑定（见 `api.zio`）。
 
 ## 文档
 
-- [整体设计](docs/self-learning-architecture.md)：独立应用边界、学习闭环、检查点与发布治理
+- [项目方向](docs/project-direction.md)：研究运行平台、框架沉淀与 Zioo 的边界和近期验收顺序
+- [整体设计](docs/self-learning-architecture.md)：运行平台边界、学习闭环、检查点与发布治理
 - [交付计划](docs/plans/)：各阶段工作包、依赖与真实验收
 - [部署规格](docs/specs/)：运行时、环境与路由合同
 

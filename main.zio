@@ -61,10 +61,29 @@
 
 ;; The bounded-agent entry the generic runner calls. Grove owns the
 ;; dispatch; Loom supplies the reusable loop, and the budget cap is a
-;; keyword the host meters, not a number the candidate chose.
+;; keyword the host meters, not a number the candidate chose. The loop
+;; reads its decisions from an explicit behavior table (spec L1) — it
+;; no longer reads ambient bindings — so the budget must carry that
+;; table.
+;;
+;; Two callers, and the budget says which: the native host hands over
+;; `:behavior`, the table its own two bindings form, because it holds
+;; the model session and meters the calls. The launcher path has no
+;; host session, so it names a provider config and the launcher's
+;; execution grants instead, and this entry assembles the table from
+;; them. An entry that can name neither refuses; it never inherits
+;; whatever a previous caller happened to install.
 (defn agent-entry [task budget]
-  (require :libs.loom.agent :refer [agent-run])
-  (agent-run task (get budget :max_turns 0)))
+  (load "agent.zio")
+  (let [behavior (get budget :behavior nil)
+        max-turns (get budget :max_turns 0)]
+    (if (nil? behavior)
+      (let [provider (agent--load-provider (get budget :provider_config ""))
+            launcher {:worker-scratch (get budget :worker_scratch "")
+                      :app-share (get budget :app_share "")}]
+        (agent-run task (assoc (agent--behavior provider launcher)
+                           :max-turns max-turns)))
+      (agent-run task (assoc behavior :max-turns max-turns)))))
 
 ;; ---------- Store open helper ----------
 (defn grove--open-store [root role]
@@ -163,13 +182,14 @@
     (views--render-decline subject reason)))
 
 (defn grove--run-handler [parsed]
-  (let [opts (get parsed :options)
-        config (get opts :provider-config "")]
-    ;; ponytail: actual model-loop dispatch goes through libs/loom/agent.zio with the
-    ;; provider config read from config-path; until the Loom + provider wiring
-    ;; lands, the CLI rejects the command with the same error class the legacy
-    ;; build returned without model-http.
-    (error "invalid-input: run needs provider wiring; build with model provider enabled")))
+  (let* [opts (get parsed :options)
+         launcher (get parsed :launcher {})
+         task (get opts :task "")
+         max-turns (get opts :max-turns 3)]
+    (grove--require (not (= task "")) "invalid-input" "run needs --task")
+    (load "agent.zio")
+    (let [provider (agent--load-provider (get opts :provider-config ""))]
+      (views--render-run-report (agent--run provider task max-turns launcher)))))
 
 ;; ---------- Command handlers ----------
 ;; `serve` loads api.zio lazily: it is the one command that needs the

@@ -21,11 +21,9 @@ RUN test -f langs/core/Cargo.toml || { \
 # libclang is the same build dependency the Zio image needs: zio-js binds
 # QuickJS with rquickjs' `bindgen` feature.
 RUN apt-get update \
- && apt-get install -y --no-install-recommends clang libclang-dev git ca-certificates \
+ && apt-get install -y --no-install-recommends clang libclang-dev ca-certificates \
  && rm -rf /var/lib/apt/lists/*
-RUN git clone --filter=blob:none https://github.com/use-zio/zio /src/zio \
- && git -C /src/zio checkout "$ZIO_REF"
-WORKDIR /src/zio
+
 RUN cargo build --release -p zio-cli
 
 FROM python:3.12-slim-bookworm AS worker-venv

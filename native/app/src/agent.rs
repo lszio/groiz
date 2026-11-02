@@ -277,6 +277,38 @@ impl AgentHost {
         );
     }
 
+    /// The loop's behavior table, as this host's own two bindings.
+    ///
+    /// `libs/loom/agent.zio` takes the loop's decisions as data rather
+    /// than reaching for ambient bindings, so the host hands its own
+    /// bindings over as that table. The Zio entry point reads it from
+    /// the budget map, so the loop's decisions come from the host that
+    /// meters the calls.
+    fn behavior_table(self: &Arc<Self>) -> Value {
+        let for_completion = Arc::clone(self);
+        let for_execution = Arc::clone(self);
+        Value::Map(
+            [
+                (
+                    Value::Keyword("complete".to_string()),
+                    Value::NativeFunction(NativeFn::new(
+                        "harness-complete",
+                        move |args, _engine| for_completion.complete(args),
+                    )),
+                ),
+                (
+                    Value::Keyword("execute".to_string()),
+                    Value::NativeFunction(NativeFn::new(
+                        "harness-execute-zio",
+                        move |args, _engine| for_execution.execute_zio(args),
+                    )),
+                ),
+            ]
+            .into_iter()
+            .collect(),
+        )
+    }
+
     /// One authorized model call.
     ///
     /// The prompt is built by the host, not handed through: the agent
@@ -481,11 +513,22 @@ impl AgentHost {
         // The budget map uses keyword keys, because that is what the
         // Zio side reads. Mixing the two is how a host ends up reading
         // an "unknown" status from a map that plainly said "candidate".
+        //
+        // `:behavior` carries this host's own two bindings as the
+        // loop's decision table. Without it the Zio entry point would
+        // have to build the table from a provider config file, which
+        // this host does not read: it holds the model session already.
         let budget = Value::Map(
-            [(
-                Value::Keyword("max_turns".to_string()),
-                Value::Integer(self.run_budget.max_turns as i64),
-            )]
+            [
+                (
+                    Value::Keyword("max_turns".to_string()),
+                    Value::Integer(self.run_budget.max_turns as i64),
+                ),
+                (
+                    Value::Keyword("behavior".to_string()),
+                    self.behavior_table(),
+                ),
+            ]
             .into_iter()
             .collect(),
         );
@@ -574,34 +617,103 @@ makes, not you.";
 
 /// Extract the source from a model message, refusing a shape the agent
 /// logic does not expect.
+///
+/// This is the Rust mirror of the canonical extraction in
+/// `libs/loom/candidate.zio` (`candidate-extract`); the case
+/// tables in the tests below and in
+/// `zio/langs/cli/tests/libs/candidate.zio` are kept identical — that
+/// 对拍 across the two implementations, not either alone, is the
+/// contract's evidence.
 fn source_from_message(message: &ChatMessage) -> std::result::Result<Value, EvalError> {
     let text = match &message.content {
         loom::harness::Value::String(s) => s.clone(),
         other => other.to_string(),
     };
-    // A model may wrap JSON in prose or a code fence. Stripping the
-    // fence is not leniency about the content, it is refusing to
-    // require the model to be a perfect JSON emitter before its answer
-    // can be looked at.
-    let cleaned = strip_fence(&text);
-    let parsed: Result<serde_json::Value, _> = serde_json::from_str(&cleaned);
-    let source = match parsed {
-        Ok(doc) => doc
-            .get("source")
-            .and_then(|v| v.as_str())
-            .map(str::to_string),
-        Err(_) => None,
-    };
-    let Some(source) = source else {
-        return Err(EvalError::custom(format!(
-            "harness-complete: the model did not return a {{source: ...}} object; \
-             its answer was {} bytes",
+    match extract_candidate_source(&text) {
+        Some(source) => {
+            let mut map = ZioMap::new();
+            map.insert(Value::Keyword("source".to_string()), Value::String(source));
+            Ok(Value::Map(map))
+        }
+        None => Err(EvalError::custom(format!(
+            "harness-complete: no candidate program in the reply ({} bytes); \
+             expected a {{\"source\": ...}} JSON object or a fenced block",
             text.len()
-        )));
-    };
-    let mut map = ZioMap::new();
-    map.insert(Value::Keyword("source".to_string()), Value::String(source));
-    Ok(Value::Map(map))
+        ))),
+    }
+}
+
+/// The canonical reply→source extraction. A reply yields a source when
+/// the whole text is a JSON object carrying a non-empty string "source",
+/// when its first ```-fenced span is such an object, when the
+/// tag-stripped span is such an object (a tagged fenced JSON — the tag
+/// made the raw-span attempt fail), or when the tag-stripped span is
+/// itself the program. JSON wins; everything else is refused — bare
+/// prose, JSON embedded in prose without a fence, and empty fenced
+/// spans are not programs, and treating them as one would execute
+/// whatever the model happened to say.
+fn extract_candidate_source(text: &str) -> Option<String> {
+    parse_json_source(text).or_else(|| {
+        fence_span(text).and_then(|span| {
+            parse_json_source(&span)
+                .or_else(|| strip_language_tag(&span))
+                .and_then(|block| match parse_json_source(&block) {
+                    Some(source) => Some(source),
+                    None => Some(block),
+                })
+        })
+    })
+}
+
+/// The whole text as a JSON object carrying a non-empty string "source".
+/// A JSON body is data, and only a string source names a program.
+fn parse_json_source(text: &str) -> Option<String> {
+    let trimmed = text.trim();
+    if trimmed.is_empty() {
+        return None;
+    }
+    let doc: serde_json::Value = serde_json::from_str(trimmed).ok()?;
+    let source = doc.get("source")?.as_str()?;
+    if source.is_empty() {
+        None
+    } else {
+        Some(source.to_string())
+    }
+}
+
+/// The first ```-fenced span, trimmed; `None` when there is no fence or
+/// the span is empty.
+fn fence_span(text: &str) -> Option<String> {
+    let span = text.split("```").nth(1)?.trim();
+    if span.is_empty() {
+        None
+    } else {
+        Some(span.to_string())
+    }
+}
+
+/// The program-path view of a fenced span: a first line that looks like
+/// a language tag (short, no "(") is dropped; a whole span that looks
+/// like a tag alone is no program at all — a Zio program is an
+/// s-expression and always carries "(". Applied after the JSON attempt,
+/// never before — a multi-line fenced JSON object starts with "{" and
+/// the tag rule would eat it.
+fn strip_language_tag(span: &str) -> Option<String> {
+    let lines: Vec<&str> = span.split('\n').collect();
+    if !lines[0].contains('(') && lines[0].chars().count() < 20 {
+        let body = if lines.len() > 1 {
+            lines[1..].join("\n").trim().to_string()
+        } else {
+            String::new()
+        };
+        if body.is_empty() {
+            None
+        } else {
+            Some(body)
+        }
+    } else {
+        Some(span.to_string())
+    }
 }
 
 /// A string-keyed outcome map, the shape the Zio logic reads.
@@ -624,20 +736,6 @@ fn outcome_map(status: &str, error: &str, output: &str) -> Value {
         Value::String(output.to_string()),
     );
     Value::Map(map)
-}
-
-fn strip_fence(text: &str) -> String {
-    let trimmed = text.trim();
-    if !trimmed.starts_with("```") {
-        return trimmed.to_string();
-    }
-    let body = trimmed.trim_start_matches("```");
-    let body = match body.split_once('\n') {
-        Some((first, rest)) if first.trim().is_empty() => rest,
-        Some((_, rest)) => rest,
-        None => body,
-    };
-    body.trim_end_matches("```").trim().to_string()
 }
 
 /// An execution outcome as the Zio side sees it.
@@ -752,4 +850,114 @@ pub fn load_task(path: &PathBuf) -> Result<TaskSpec> {
         })
         .unwrap_or_default();
     Ok(TaskSpec { id, prompt, inputs })
+}
+
+/// The reply→source case table, kept identical to
+/// `zio/langs/cli/tests/libs/candidate.zio` (对拍). One line per case,
+/// same labels: a divergence between the two suites is a contract
+/// regression on one side, not a new feature.
+#[cfg(test)]
+mod candidate_contract {
+    use super::{extract_candidate_source, fence_span, parse_json_source, strip_language_tag};
+
+    #[test]
+    fn json_shapes() {
+        // json-bare
+        assert_eq!(
+            extract_candidate_source("{\"source\": \"(println 42)\"}").as_deref(),
+            Some("(println 42)")
+        );
+        // json-fenced-tagged
+        assert_eq!(
+            extract_candidate_source("```json\n{\"source\": \"(+ 1 2)\"}\n```").as_deref(),
+            Some("(+ 1 2)")
+        );
+        // json-fenced-bare
+        assert_eq!(
+            extract_candidate_source("```\n{\"source\": \"(+ 1 2)\"}\n```").as_deref(),
+            Some("(+ 1 2)")
+        );
+        // json-fenced-multiline: the tag rule must not eat the "{" line,
+        // so the JSON attempt runs on the raw span before tag-stripping.
+        assert_eq!(
+            extract_candidate_source("```\n{\n  \"source\": \"(+ 1 2)\"\n}\n```").as_deref(),
+            Some("(+ 1 2)")
+        );
+        // json-prose-fenced
+        assert_eq!(
+            extract_candidate_source(
+                "Here is the program:\n```json\n{\"source\": \"(+ 1 2)\"}\n```"
+            )
+            .as_deref(),
+            Some("(+ 1 2)")
+        );
+        // json-source-keeps-inner-fence: the JSON string's own \n escapes
+        // become real newlines in the extracted source.
+        assert_eq!(
+            extract_candidate_source("{\"source\": \"```zio\\n(+ 1 2)\\n```\"}").as_deref(),
+            Some("```zio\n(+ 1 2)\n```")
+        );
+        // json-without-source / json-empty-source / json-non-string-source
+        assert_eq!(extract_candidate_source("{\"answer\": 42}"), None);
+        assert_eq!(extract_candidate_source("{\"source\": \"\"}"), None);
+        assert_eq!(extract_candidate_source("{\"source\": 42}"), None);
+    }
+
+    #[test]
+    fn fenced_program_shapes() {
+        // fence-tagged-program
+        assert_eq!(
+            extract_candidate_source("```zio\n(defn f [x] (* x 2))\n(f 21)\n```").as_deref(),
+            Some("(defn f [x] (* x 2))\n(f 21)")
+        );
+        // fence-untagged-program
+        assert_eq!(
+            extract_candidate_source("```\n(defn f [x] (* x 2))\n```").as_deref(),
+            Some("(defn f [x] (* x 2))")
+        );
+        // fence-prose-wrapped
+        assert_eq!(
+            extract_candidate_source("Sure:\n```zio\n(println \"ok\")\n```\ndone").as_deref(),
+            Some("(println \"ok\")")
+        );
+        // fence-first-block-wins
+        assert_eq!(
+            extract_candidate_source("```zio\n(first)\n```\nmid\n```\n(second)\n```").as_deref(),
+            Some("(first)")
+        );
+        // fence-empty / fence-tag-only: an empty fence marked a program
+        // once and executed an empty string for it.
+        assert_eq!(extract_candidate_source("```\n```"), None);
+        assert_eq!(extract_candidate_source("```zio\n```"), None);
+    }
+
+    #[test]
+    fn refusals() {
+        // prose-only-refused / empty-refused / non-string-refused (the
+        // Zio side also refuses nil; Rust takes &str, so there is no
+        // nil input to mirror).
+        assert_eq!(extract_candidate_source("I cannot write that program."), None);
+        assert_eq!(extract_candidate_source(""), None);
+        assert_eq!(parse_json_source("   "), None);
+        assert_eq!(fence_span("no fence at all"), None);
+    }
+
+    #[test]
+    fn helpers_match_the_zio_composition() {
+        // fence_span is the shared span step; the JSON and tag paths
+        // compose over it in both implementations.
+        assert_eq!(fence_span("a\n```zio\n(first)\n```").as_deref(), Some("zio\n(first)"));
+        assert_eq!(
+            strip_language_tag("zio\n(first)").as_deref(),
+            Some("(first)")
+        );
+        // A tag alone is no program.
+        assert_eq!(strip_language_tag("zio"), None);
+        assert_eq!(strip_language_tag("(first)").as_deref(), Some("(first)"));
+        // A multi-line JSON map reaches tag-stripping only when its JSON
+        // parse already failed (json-fenced-multiline covers the parsed
+        // path at the composition level), so the helper's behavior there
+        // is deterministic fallback, not JSON semantics.
+        assert_eq!(strip_language_tag("(first)\n(second)").as_deref(), Some("(first)\n(second)"));
+    }
 }

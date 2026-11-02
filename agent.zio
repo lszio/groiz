@@ -1,0 +1,91 @@
+;; The agent loop Grove actually runs.
+;;
+;; libs/loom owns the loop and the bindings' reference implementation:
+;; libs/loom/agent.zio decides when to ask the model, what counts as a
+;; candidate, when to stop — from a BEHAVIOR TABLE passed as data — and
+;; libs/loom/candidate.zio owns the reply→source contract (one
+;; extraction, one prompt shape — previously this file and
+;; native/app/src/agent.rs each grew their own) plus the reference
+;; complete/execute binding factories. This file is assembly only: it
+;; loads the provider config the launcher granted, assembles loom's
+;; behavior table over that config and the launcher's execution grants,
+;; and hands the loop over. The loop reads its decisions from the
+;; argument — there are no ambient bindings to install or clear.
+;;
+;; Everything here is trusted application code. The candidate cannot
+;; reach any of it: its process starts with `env -i`, a scratch dir and
+;; read-only mounts, and its only output channel is one JSON envelope.
+
+(load "contracts.zio")
+(load "codec.zio")
+(require :libs.loom.candidate :refer [make-complete-binding make-execute-binding])
+(require :libs.loom.agent :refer [agent-run])
+
+;; Runtime defaults for the launcher path. The turn ceiling is also
+;; metered by the loop; these feed the bindings' config.
+(def agent--defaults
+  {:max-turns 3
+   :timeout-ms 60000
+   :step-limit 1000000
+   :max-tokens 2048
+   :temperature 0.2
+   :api-key-env "GROIZ_LLM_API_KEY"})
+
+;; ---------- Provider ----------
+
+(defn agent--load-provider [path]
+  (grove--require (and (string? path) (not (= path ""))) "invalid-input"
+                  "run needs --provider-config (a JSON file under a granted read root)")
+  (let* [config (codec--normalize (json-parse (host/bytes-utf8 (host/read-bytes path))))
+         base (str (grove--get-key config :baseURL ""))
+         model (str (grove--get-key config :model ""))
+         completions (str (grove--get-key config :completions ""))]
+    (grove--require (not (= base "")) "invalid-input" "provider config needs baseURL")
+    (grove--require (not (= model "")) "invalid-input" "provider config needs model")
+    {:baseURL base
+     :completions completions
+     :model model
+     :api-key-env (str (grove--get-key config :apiKeyEnv (get agent--defaults :api-key-env)))
+     :temperature (grove--get-key config :temperature (get agent--defaults :temperature))
+     :max-tokens (grove--get-key config :maxTokens (get agent--defaults :max-tokens))}))
+
+;; ---------- The behavior table ----------
+
+(defn agent--behavior [provider launcher]
+  ;; Assembles the loop's behavior over this launcher's grants: the
+  ;; model endpoint and key name from the provider config, the
+  ;; candidate jail from the launcher's worker-scratch share and
+  ;; ZIO_BIN. The launcher path runs a whole-file program under
+  ;; --emit-framed, so the program-shape instructions say so; the reply
+  ;; format (JSON with a "source" key) is loom's contract, not a
+  ;; per-path choice. The turn ceiling is added by the caller.
+  (let* [zio-bin (try (host/getenv "ZIO_BIN") (catch any nil))
+         scratch (get launcher :worker-scratch "")]
+    (grove--require (and (not (= zio-bin nil)) (not (= zio-bin ""))) "invalid-input"
+                    "candidate execution needs ZIO_BIN (the launcher grants it)")
+    (grove--require (not (= scratch "")) "invalid-input"
+                    "candidate execution needs the launcher's worker-scratch grant")
+    {:complete
+     (make-complete-binding
+      {:base-url (get provider :baseURL "")
+       :model (get provider :model "")
+       :completions (get provider :completions "")
+       :api-key-env (get provider :api-key-env "")
+       :temperature (get provider :temperature nil)
+       :max-tokens (get provider :max-tokens nil)
+       :program-instructions
+       (str "Zio is a Lisp: define functions with defn, end the program "
+            "with the value to report. The program runs with no libraries "
+            "and no host access.")})
+     :execute
+     (make-execute-binding
+      {:zio-bin zio-bin
+       :scratch scratch
+       :app-share (get launcher :app-share "")
+       :step-limit (get agent--defaults :step-limit)
+       :timeout-ms (get agent--defaults :timeout-ms)})}))
+
+(defn agent--run [provider task max-turns launcher]
+  (agent-run task (assoc (agent--behavior provider launcher) :max-turns max-turns)))
+
+(export agent--load-provider agent--behavior agent--run)

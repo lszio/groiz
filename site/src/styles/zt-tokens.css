@@ -1,0 +1,193 @@
+/* ═══ Quiet Tactile v2 — Zio 生态共享设计令牌(单源) ═══
+   canonical: groiz/design-system/tokens.css
+   分发副本(不要直接改):
+     · groiz/site/tokens.css            —— <link> 引用,site/Dockerfile COPY
+     · zio/apps/loom/web/index.html     —— loom serve 只托管 index.html,令牌内联
+   修改后运行 groiz/tools/sync-design-tokens.sh 重新分发。
+
+   v2 (2026-11-01, 总纲 §3.2 色板): 语义令牌名全部保持,只换值。
+   变更: 色板换 Modern Chinese Colors(蓝主); M3 颗粒材质废弃移除;
+   M2 玻璃收敛为仅粘性栏可用; 阶段色/按钮色随新板重推导。
+   逐值映射见 zio-eco-docs/docs/design-system/tokens.md。
+
+   三层令牌(页面禁止引用原始色值):
+     Layer 1  primitive  --zt-*       原始色值/尺寸/圆角/阴影/字体/动效
+     Layer 2  semantic   --bg-* --text-* --border-* --accent-* --status-*
+     Layer 3  component  --button-* --input-* --card-* --ph-*
+
+   主题合同:默认(:root)= light;html[data-theme="dark"] 整体覆盖。
+   主题脚本必须在首帧前解析 system/light/dark 并写 data-theme(无闪烁);
+   用户偏好存 localStorage "zt-theme",三个产品共用同一个键。 */
+
+/* ── Layer 1 · primitive ─────────────────────────────────────────── */
+:root {
+  /* 字体栈:不加载 webfont(离线可靠 / 授权 / 性能),按栈内系统字体回退。
+     editorial/mono 是拉丁导向的栈,CJK 必须显式回退到黑体,
+     否则中文标题会落到系统衬线(宋体)。 */
+  --zt-font-sans: "Inter", "MiSans", "Noto Sans SC", -apple-system, "PingFang SC",
+    "Segoe UI", "Microsoft YaHei", sans-serif;
+  --zt-font-editorial: "Geist", "Inter", "MiSans", -apple-system, "PingFang SC",
+    "Noto Sans SC", "Microsoft YaHei", sans-serif;
+  --zt-font-mono: "JetBrains Mono", "SFMono-Regular", ui-monospace, Menlo, Consolas,
+    "PingFang SC", "Noto Sans SC", monospace;
+
+  /* 间距,4px 基准 */
+  --zt-space-1: 4px;  --zt-space-2: 8px;   --zt-space-3: 12px; --zt-space-4: 16px;
+  --zt-space-5: 20px; --zt-space-6: 24px;  --zt-space-8: 32px; --zt-space-10: 40px;
+  --zt-space-12: 48px; --zt-space-16: 64px; --zt-space-20: 80px;
+
+  /* 圆角:按用途选择,不要全站同一圆角 */
+  --zt-radius-sm: 6px;  --zt-radius-md: 10px;  --zt-radius-lg: 14px;
+  --zt-radius-xl: 20px; --zt-radius-2xl: 28px; --zt-radius-full: 999px;
+
+  /* 阴影:柔和、低对比 —— 触感,不是悬浮 */
+  --zt-shadow-sm: 0 1px 2px rgba(32, 43, 56, .05), 0 1px 3px rgba(32, 43, 56, .04);
+  --zt-shadow-md: 0 2px 4px rgba(32, 43, 56, .05), 0 6px 16px rgba(32, 43, 56, .07);
+  --zt-shadow-lg: 0 4px 8px rgba(32, 43, 56, .06), 0 16px 40px rgba(32, 43, 56, .12);
+
+  /* 动效时长与统一缓动;执行状态动画必须对应真实状态 */
+  --zt-motion-fast: 120ms;  --zt-motion-base: 150ms;  --zt-motion-pop: 180ms;
+  --zt-motion-panel: 220ms; --zt-motion-page: 280ms;
+  --zt-ease: cubic-bezier(.2, 0, 0, 1);
+
+  /* 字号层级 */
+  --zt-fs-display: 52px; --zt-fs-h1: 36px; --zt-fs-h2: 28px; --zt-fs-h3: 22px;
+  --zt-fs-h4: 18px; --zt-fs-body-lg: 16px; --zt-fs-body: 14px;
+  --zt-fs-caption: 12px; --zt-fs-code: 13px;
+
+  /* 次级色板(传统色现代转译):仅少量状态、图表与辅助,不与主色竞争 */
+  --zt-sec-cang:   #829B91;  /* 苍 */
+  --zt-sec-cingci: #A7C1B9;  /* 青瓷 */
+  --zt-sec-sha:    #C5BCA9;  /* 砂 */
+  --zt-sec-huizi:  #A6A2B5;  /* 灰紫 */
+  --zt-sec-tao:    #B98F84;  /* 陶 */
+}
+
+/* ── Layer 2 · semantic(light = 默认) ────────────────────────────── */
+:root {
+  color-scheme: light;
+  --bg-canvas: #F5F7FA;      /* background:页面底 */
+  --bg-surface: #FFFFFF;     /* surface:内容表面 */
+  --bg-elevated: #FFFFFF;    /* surface-elevated:浮起表面 */
+  --bg-subtle: #F0F3F8;      /* surface-secondary:次级表面 */
+  --bg-inset: #E4E9F0;       /* 内嵌表面:代码/日志/编辑器(比 canvas 深一档) */
+  --text-primary: #202B38;
+  --text-secondary: #647285;  /* 总纲 #697789 加深至 AA 4.56:1 */
+  --text-tertiary: #8C99A9;
+  --border-default: #DDE3EB;
+  --border-strong: #C7D0DC;
+  --accent-primary: #315E91; /* primary:靛青蓝 */
+  --accent-hover: #284F7C;   /* primary-hover */
+  --accent-subtle: #DCE6F0;  /* primary 12% on canvas */
+  --focus-ring: #527EAA;     /* info 兼任焦点环 */
+  --status-success: #398C72;
+  --status-warning: #B68A40;
+  --status-danger: #C45C5C;
+  --status-info: #47719C;  /* 总纲 #527EAA 加深至 AA 4.76:1(兼 focus-ring 文本场景) */
+
+  /* M2 毛玻璃:仅粘性导航/浮层可用;不支持 backdrop-filter 时降级为实心表面 */
+  --glass-background: rgba(255, 255, 255, .80);
+  --glass-border: rgba(221, 227, 235, .72);
+
+  /* 教学端口五阶段色(低饱和,随新板重推导;两主题各一套) */
+  --ph-ask: #46688F;      /* ask 模型 · 蓝青 */
+  --ph-extract: #4F8375;  /* extract 提取 · 苍绿 */
+  --ph-exec: #A98B4E;     /* execute 执行 · 砂 */
+  --ph-check: #7C78A0;    /* candidate? 判定 · 灰紫 */
+  --ph-revise: #B47368;   /* revise 修订 · 陶 */
+  --ph-other: #8C99A9;
+}
+
+/* ── Layer 2 · semantic(dark) ───────────────────────────────────── */
+html[data-theme="dark"] {
+  color-scheme: dark;
+  --bg-canvas: #10151D;
+  --bg-surface: #181F2A;
+  --bg-elevated: #242E3C;
+  --bg-subtle: #202A37;
+  --bg-inset: #0C1117;
+  --text-primary: #E5EAF1;
+  --text-secondary: #9BA9BA;
+  --text-tertiary: #7889A0;
+  --border-default: #303B49;
+  --border-strong: #43505F;
+  --accent-primary: #83A9D4;
+  --accent-hover: #9ABAE0;
+  --accent-subtle: #24384E;
+  --focus-ring: #83A9D4;
+  --status-success: #65B69A;
+  --status-warning: #D5AD68;
+  --status-danger: #E17D7D;
+  --status-info: #83A9D4;
+
+  --glass-background: rgba(24, 31, 42, .80);
+  --glass-border: rgba(48, 59, 73, .72);
+
+  --ph-ask: #83A9D4;
+  --ph-extract: #65B69A;
+  --ph-exec: #D5AD68;
+  --ph-check: #B0AACF;
+  --ph-revise: #DDA294;
+  --ph-other: #7889A0;
+}
+
+/* ── Layer 3 · component ─────────────────────────────────────────── */
+:root {
+  /* 实心按钮:light 用 primary+白字,dark 用亮 primary+深字(禁渐变/发光) */
+  --button-radius: var(--zt-radius-md);
+  --button-bg: #315E91;
+  --button-bg-hover: #284F7C;
+  --button-fg: #FFFFFF;
+  --input-border: var(--border-default);
+  --card-bg: var(--bg-surface);
+  --card-border: var(--border-default);
+  --card-shadow: var(--zt-shadow-sm);
+}
+html[data-theme="dark"] {
+  --button-bg: var(--accent-primary);
+  --button-bg-hover: var(--accent-hover);
+  --button-fg: #10151D;
+}
+
+/* ── 共享材质 ────────────────────────────────────────────────────── */
+/* M2 Frosted Glass:仅粘性导航/浮层。不支持 backdrop-filter 时降级为实心表面。
+   (v2 收敛:普通表面禁止玻璃;大面积品牌背景禁用) */
+.zt-glass {
+  -webkit-backdrop-filter: blur(20px) saturate(120%);
+  backdrop-filter: blur(20px) saturate(120%);
+  background: var(--glass-background);
+  border: 1px solid var(--glass-border);
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .zt-glass { background: var(--bg-elevated); }
+}
+
+/* M3 Grain 已废弃(v2):总纲 §3.1 禁大面积纹理装饰。
+   页面残留的 .zt-grain 类不再产生任何样式,由 P4 逐产品摘除引用。 */
+
+/* 数字优先 tabular(指标/游标/预算) */
+.zt-num { font-variant-numeric: tabular-nums; }
+
+/* ── 无障碍与滚动条 ─────────────────────────────────────────────── */
+:focus-visible { outline: 2px solid var(--focus-ring); outline-offset: 2px; }
+::selection { background: color-mix(in srgb, var(--accent-primary) 25%, transparent); }
+
+* { scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: var(--zt-radius-full); }
+::-webkit-scrollbar-track { background: transparent; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ── 主题引导合同(每页自行内联,首帧前执行) ─────────────────────
+   脚本内容:读 localStorage "zt-theme"(system/light/dark,默认 system);
+   system 时按 prefers-color-scheme 解析;结果写 html 的 data-theme 与
+   data-themePref 两个 dataset。切换循环 system → light → dark 由页面的
+   ztTheme.cycle() 提供,三个产品共用同一实现。 */

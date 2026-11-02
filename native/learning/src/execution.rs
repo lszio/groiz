@@ -30,7 +30,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::time::Instant;
 
-use zio_core::bootstrap::{ModuleRoots, eval_source, language_context};
+use zio_core::bootstrap::{ModuleRoots, eval_source, language_context, language_context_with_io};
 use zio_core::context::{EvalContext, EvalRuntime};
 use zio_core::error::EvalError;
 use zio_core::im::Vector;
@@ -661,8 +661,6 @@ pub fn execute(store: &Store, actor: &Actor, request: ExecutionRequest) -> Resul
     for input in &request.inputs {
         roots.push(input.clone());
     }
-    let module_roots = ModuleRoots::new(roots).map_err(|e| eval_err(e, "granted roots"))?;
-
     let io = Arc::new(SandboxIo::new(grant.limits.max_output_bytes));
     for frozen in &grant.frozen {
         if let Some(parent) = frozen.path.parent() {
@@ -682,6 +680,13 @@ pub fn execute(store: &Store, actor: &Actor, request: ExecutionRequest) -> Resul
             }
         }
     }
+    // The sandbox resolves names inside its own key space, so the roots
+    // canonicalize through the sandbox I/O, not the real filesystem: on
+    // macOS the real spelling of a tempdir (/private/var/...) differs
+    // from the granted one (/var/...), and a canonicalized root would
+    // make every granted dependency look absent.
+    let module_roots =
+        ModuleRoots::new_with_io(roots, io.as_ref()).map_err(|e| eval_err(e, "granted roots"))?;
 
     let ctx = language_context_with_sandbox(module_roots, Arc::clone(&io))
         .map_err(|e| eval_err(e, "sandbox bootstrap"))?;
