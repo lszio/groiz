@@ -15,7 +15,7 @@ ARG ZIO_REF=main
 RUN apt-get update \
  && apt-get install -y --no-install-recommends clang libclang-dev git ca-certificates \
  && rm -rf /var/lib/apt/lists/*
-RUN git clone --filter=blob:none https://github.com/lszio/zio /src/zio \
+RUN git clone --filter=blob:none https://github.com/use-zio/zio /src/zio \
  && git -C /src/zio checkout "$ZIO_REF"
 WORKDIR /src/zio
 RUN cargo build --release -p zio-cli

@@ -1,7 +1,7 @@
 # Groiz
 
-治理学习应用：评估、路由、蒸馏与发布治理。Groiz 以 [Zio](https://github.com/lszio/zio)
-为语言基础，以 [Loom](https://github.com/lszio/zio/tree/main/contribs/native/loom)
+治理学习应用：评估、路由、蒸馏与发布治理。Groiz 以 [Zio](https://github.com/use-zio/zio)
+为语言基础，以 [Loom](https://github.com/use-zio/zio/tree/main/contribs/native/loom)
 为模型 harness，作为**独立仓库**开发与发布：Zio 侧只保留语言与库，站点、仓库内
 的 compose/nginx/CI 都不再承载 Groiz。
 
@@ -12,8 +12,8 @@
 并排克隆：
 
 ```sh
-git clone https://github.com/lszio/zio.git
-git clone https://github.com/lszio/groiz.git
+git clone https://github.com/use-zio/zio.git
+git clone https://github.com/use-zio/groiz.git
 cd groiz
 cargo test --workspace
 ```
@@ -80,4 +80,4 @@ loopback 地址会被拒绝绑定（见 `api.zio`）。
 - [交付计划](docs/plans/)：各阶段工作包、依赖与真实验收
 - [部署规格](docs/specs/)：运行时、环境与路由合同
 
-Zio 语言、库与工具链文档在 [Zio 仓库](https://github.com/lszio/zio)。
+Zio 语言、库与工具链文档在 [Zio 仓库](https://github.com/use-zio/zio)。
