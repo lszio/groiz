@@ -31,11 +31,11 @@ fn repo_root() -> PathBuf {
         .to_path_buf()
 }
 
-/// `libs/**` ships with the sibling Zio checkout, not with Groiz.
+/// `libs/**` ships with the Zio submodule, not with Groiz itself.
 fn zio_root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .ancestors()
-        .nth(3)
+        .nth(2)
         .unwrap()
         .to_path_buf()
         .join("zio")

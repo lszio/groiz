@@ -153,11 +153,11 @@ pub fn memory_context() -> Result<EvalContext> {
     Ok(ctx)
 }
 
-/// `libs/**` ships with the sibling Zio checkout, not with Groiz.
+/// `libs/**` ships with the Zio submodule, not with Groiz itself.
 fn lib_path(lib: &str) -> std::path::PathBuf {
     std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .ancestors()
-        .nth(3)
+        .nth(2)
         .expect("crate lives in the repository layout")
         .join("zio/libs")
         .join(lib)
