@@ -706,11 +706,7 @@ fn strip_language_tag(span: &str) -> Option<String> {
         } else {
             String::new()
         };
-        if body.is_empty() {
-            None
-        } else {
-            Some(body)
-        }
+        if body.is_empty() { None } else { Some(body) }
     } else {
         Some(span.to_string())
     }
@@ -936,7 +932,10 @@ mod candidate_contract {
         // prose-only-refused / empty-refused / non-string-refused (the
         // Zio side also refuses nil; Rust takes &str, so there is no
         // nil input to mirror).
-        assert_eq!(extract_candidate_source("I cannot write that program."), None);
+        assert_eq!(
+            extract_candidate_source("I cannot write that program."),
+            None
+        );
         assert_eq!(extract_candidate_source(""), None);
         assert_eq!(parse_json_source("   "), None);
         assert_eq!(fence_span("no fence at all"), None);
@@ -946,7 +945,10 @@ mod candidate_contract {
     fn helpers_match_the_zio_composition() {
         // fence_span is the shared span step; the JSON and tag paths
         // compose over it in both implementations.
-        assert_eq!(fence_span("a\n```zio\n(first)\n```").as_deref(), Some("zio\n(first)"));
+        assert_eq!(
+            fence_span("a\n```zio\n(first)\n```").as_deref(),
+            Some("zio\n(first)")
+        );
         assert_eq!(
             strip_language_tag("zio\n(first)").as_deref(),
             Some("(first)")
@@ -958,6 +960,9 @@ mod candidate_contract {
         // parse already failed (json-fenced-multiline covers the parsed
         // path at the composition level), so the helper's behavior there
         // is deterministic fallback, not JSON semantics.
-        assert_eq!(strip_language_tag("(first)\n(second)").as_deref(), Some("(first)\n(second)"));
+        assert_eq!(
+            strip_language_tag("(first)\n(second)").as_deref(),
+            Some("(first)\n(second)")
+        );
     }
 }
