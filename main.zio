@@ -63,17 +63,27 @@
 ;; dispatch; Loom supplies the reusable loop, and the budget cap is a
 ;; keyword the host meters, not a number the candidate chose. The loop
 ;; reads its decisions from an explicit behavior table (spec L1) — it
-;; no longer reads ambient bindings — so the budget must carry what the
-;; behavior is assembled over: the provider config path and the
-;; launcher's execution grants. An entry that cannot name them refuses;
-;; it never inherits whatever a previous caller happened to install.
+;; no longer reads ambient bindings — so the budget must carry that
+;; table.
+;;
+;; Two callers, and the budget says which: the native host hands over
+;; `:behavior`, the table its own two bindings form, because it holds
+;; the model session and meters the calls. The launcher path has no
+;; host session, so it names a provider config and the launcher's
+;; execution grants instead, and this entry assembles the table from
+;; them. An entry that can name neither refuses; it never inherits
+;; whatever a previous caller happened to install.
 (defn agent-entry [task budget]
   (load "agent.zio")
-  (let [provider (agent--load-provider (get budget :provider_config ""))
-        launcher {:worker-scratch (get budget :worker_scratch "")
-                  :app-share (get budget :app_share "")}]
-    (agent-run task (assoc (agent--behavior provider launcher)
-                       :max-turns (get budget :max_turns 0)))))
+  (let [behavior (get budget :behavior nil)
+        max-turns (get budget :max_turns 0)]
+    (if (nil? behavior)
+      (let [provider (agent--load-provider (get budget :provider_config ""))
+            launcher {:worker-scratch (get budget :worker_scratch "")
+                      :app-share (get budget :app_share "")}]
+        (agent-run task (assoc (agent--behavior provider launcher)
+                           :max-turns max-turns)))
+      (agent-run task (assoc behavior :max-turns max-turns)))))
 
 ;; ---------- Store open helper ----------
 (defn grove--open-store [root role]

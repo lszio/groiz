@@ -277,6 +277,38 @@ impl AgentHost {
         );
     }
 
+    /// The loop's behavior table, as this host's own two bindings.
+    ///
+    /// `libs/loom/agent.zio` takes the loop's decisions as data rather
+    /// than reaching for ambient bindings, so the host hands its own
+    /// bindings over as that table. The Zio entry point reads it from
+    /// the budget map, so the loop's decisions come from the host that
+    /// meters the calls.
+    fn behavior_table(self: &Arc<Self>) -> Value {
+        let for_completion = Arc::clone(self);
+        let for_execution = Arc::clone(self);
+        Value::Map(
+            [
+                (
+                    Value::Keyword("complete".to_string()),
+                    Value::NativeFunction(NativeFn::new(
+                        "harness-complete",
+                        move |args, _engine| for_completion.complete(args),
+                    )),
+                ),
+                (
+                    Value::Keyword("execute".to_string()),
+                    Value::NativeFunction(NativeFn::new(
+                        "harness-execute-zio",
+                        move |args, _engine| for_execution.execute_zio(args),
+                    )),
+                ),
+            ]
+            .into_iter()
+            .collect(),
+        )
+    }
+
     /// One authorized model call.
     ///
     /// The prompt is built by the host, not handed through: the agent
@@ -481,11 +513,22 @@ impl AgentHost {
         // The budget map uses keyword keys, because that is what the
         // Zio side reads. Mixing the two is how a host ends up reading
         // an "unknown" status from a map that plainly said "candidate".
+        //
+        // `:behavior` carries this host's own two bindings as the
+        // loop's decision table. Without it the Zio entry point would
+        // have to build the table from a provider config file, which
+        // this host does not read: it holds the model session already.
         let budget = Value::Map(
-            [(
-                Value::Keyword("max_turns".to_string()),
-                Value::Integer(self.run_budget.max_turns as i64),
-            )]
+            [
+                (
+                    Value::Keyword("max_turns".to_string()),
+                    Value::Integer(self.run_budget.max_turns as i64),
+                ),
+                (
+                    Value::Keyword("behavior".to_string()),
+                    self.behavior_table(),
+                ),
+            ]
             .into_iter()
             .collect(),
         );
