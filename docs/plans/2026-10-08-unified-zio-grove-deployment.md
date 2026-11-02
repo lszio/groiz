@@ -1278,7 +1278,7 @@ call() {
 
 case "$action" in
   up)
-    call POST compose/create "{\"name\":\"$project\",\"source\":\"github\",\"gitRepository\":\"lszio/groiz\",\"gitBranch\":\"pull/${PR_NUMBER}/head\",\"composeFile\":\"docker-compose.preview.yml\",\"composeType\":\"file\",\"envFile\":\"/etc/dokploy/compose/$project.env\"}" >/dev/null
+    call POST compose/create "{\"name\":\"$project\",\"source\":\"github\",\"gitRepository\":\"use-zio/groiz\",\"gitBranch\":\"pull/${PR_NUMBER}/head\",\"composeFile\":\"docker-compose.preview.yml\",\"composeType\":\"file\",\"envFile\":\"/etc/dokploy/compose/$project.env\"}" >/dev/null
     call POST domain/create "{\"applicationType\":\"compose\",\"composeId\":\"$project\",\"domain\":\"$domain\"}" >/dev/null
     printf 'preview stack %s is building from pull request %s\n' "$project" "$PR_NUMBER"
     ;;
@@ -1363,7 +1363,7 @@ jobs:
 
 - [ ] **Step 3: Verify the permission gate refuses outsiders**
 
-Run: `gh api repos/lszio/groiz/actions/workflows/preview.yml/runs --jq '.workflow_runs[0].conclusion' 2>/dev/null || true`, then open a test pull request from a fork and confirm the job is `skipped`, not run. Expected: `skipped`. Record the observed conclusion.
+Run: `gh api repos/use-zio/groiz/actions/workflows/preview.yml/runs --jq '.workflow_runs[0].conclusion' 2>/dev/null || true`, then open a test pull request from a fork and confirm the job is `skipped`, not run. Expected: `skipped`. Record the observed conclusion.
 
 - [ ] **Step 4: Verify cleanup removes the volume**
 

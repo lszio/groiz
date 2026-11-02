@@ -16,6 +16,7 @@ COPY zio /src/zio
 RUN apt-get update \
  && apt-get install -y --no-install-recommends clang libclang-dev ca-certificates \
  && rm -rf /var/lib/apt/lists/*
+
 RUN cargo build --release -p zio-cli
 
 FROM python:3.12-slim-bookworm AS worker-venv

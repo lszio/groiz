@@ -34,7 +34,7 @@ jobs:
           path: groiz
       - uses: actions/checkout@v4
         with:
-          repository: lszio/zio
+          repository: use-zio/zio
           path: zio
 
       - name: Install toolchain
@@ -99,7 +99,7 @@ jobs:
           path: groiz
       - uses: actions/checkout@v4
         with:
-          repository: lszio/zio
+          repository: use-zio/zio
           path: zio
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
