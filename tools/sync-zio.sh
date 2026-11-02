@@ -33,7 +33,7 @@ rsync -a \
 cat > "$ROOT/zio/VENDORED.md" <<NOTE
 # Vendored Zio
 
-This directory is a build-time copy of lszio/zio at
+This directory is a build-time copy of use-zio/zio at
 ${REV} (branch: ${BRANCH:-detached}), trimmed to what the
 grove image compiles (workspace members + libs + examples).
 
@@ -44,7 +44,7 @@ in this repository instead of a submodule. Refresh with:
     ZIO_ROOT=/path/to/zio tools/sync-zio.sh
 
 and commit. The copy is a snapshot, not a fork: language work happens
-in lszio/zio and lands here by running the sync.
+in use-zio/zio and lands here by running the sync.
 NOTE
 
 find "$ROOT/zio" -name "._*" -delete
